@@ -427,3 +427,30 @@ button:disabled,
   font-weight: 700;
   color: #1e40af;
 }
+.timeline-section p {
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+/* ===== TEXTAREA AUTO-EXPANDIBLE ===== */
+.auto-textarea {
+  width: 100%;
+  min-height: 42px;
+  resize: none;                 /* ❌ evita que el usuario la estire feo */
+  overflow: hidden;             /* ❌ sin scroll interno */
+  padding: 10px;
+  margin-bottom: 10px;
+
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+
+  background: white;
+}
+
+.auto-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.3);
+}

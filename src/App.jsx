@@ -15,6 +15,7 @@ function App() {
   const [toast, setToast] = useState('')
 
   const [sintomas, setSintomas] = useState('')
+  const [recomendaciones, setRecomendaciones] = useState('')
   const [cieQuery, setCieQuery] = useState('')
   const [cieResultados, setCieResultados] = useState([])
   const [diagnostico, setDiagnostico] = useState(null)
@@ -59,7 +60,7 @@ function App() {
     })
 
   /* =======================
-     ABRIR MODAL
+     MODAL
   ======================= */
   const abrirModal = () => {
     setNuevoNombre('')
@@ -100,22 +101,21 @@ function App() {
       setNoExiste(true)
     } else {
       setMensaje('')
-      setNoExiste(false)
       setTrabajador(data)
-      cargarHistorial(data.id)   // ✅ AQUÍ SE CARGA EL HISTORIAL
+      cargarHistorial(data.id)
     }
 
     setCargando(false)
   }
 
   /* =======================
-     HISTORIAL MÉDICO
+     HISTORIAL
   ======================= */
-  const cargarHistorial = async (trabajadorId) => {
+  const cargarHistorial = async (id) => {
     const { data, error } = await supabase
       .from('registros_medicos')
-      .select('id, fecha, sintomas, cie')
-      .eq('trabajador_id', trabajadorId)
+      .select('id, fecha, sintomas, recomendaciones, cie')
+      .eq('trabajador_id', id)
       .order('fecha', { ascending: false })
 
     if (!error) {
@@ -127,43 +127,46 @@ function App() {
      BUSCAR CIE
   ======================= */
   const buscarCie = async (texto) => {
-  if (!texto || texto.length < 2) {
-    setCieResultados([])
-    return
-  }
+    if (!texto || texto.length < 2) {
+      setCieResultados([])
+      return
+    }
 
-  const { data, error } = await supabase
-    .from('cie')
-    .select('codigo, descripcion')
-    .ilike('descripcion', `%${texto}%`)
-    .limit(10)
+    const { data } = await supabase
+      .from('cie')
+      .select('codigo, descripcion')
+      .ilike('descripcion', `%${texto}%`)
+      .limit(10)
 
-  if (!error) {
     setCieResultados(data || [])
   }
-}
-
 
   /* =======================
      REGISTRAR ATENCIÓN
   ======================= */
   const registrarAtencion = async () => {
-    if (!sintomas || !diagnostico) return
+    if (!sintomas.trim() || !diagnostico) return
+
+    const cieTexto = `${diagnostico.codigo} - ${diagnostico.descripcion}`
 
     await supabase.from('registros_medicos').insert({
       trabajador_id: trabajador.id,
       sintomas,
-      cie: `${diagnostico.codigo} - ${diagnostico.descripcion}`,
+      recomendaciones,
+      cie: cieTexto,
       fecha: new Date().toISOString()
     })
 
     setSintomas('')
+    setRecomendaciones('')
     setDiagnostico(null)
     setCieQuery('')
+    setCieResultados([])
+
     setToast('Atención registrada correctamente')
     setTimeout(() => setToast(''), 3000)
 
-    cargarHistorial(trabajador.id) // ✅ recarga historial
+    cargarHistorial(trabajador.id)
   }
 
   /* =======================
@@ -256,8 +259,7 @@ function App() {
         </div>
 
         {/* CARD TRABAJADOR */}
-        {/* CARD TRABAJADOR */}
-{trabajador && (
+        {trabajador && (
   <div className="card">
     <span className="badge">Paciente</span>
 
@@ -265,20 +267,22 @@ function App() {
       {trabajador.nombres} {trabajador.apellidos}
     </h3>
 
-    {/* DATOS DEL PACIENTE */}
+    {/* 👇 AQUÍ VA ESTE BLOQUE */}
     <div style={{ marginBottom: 16, fontSize: 14 }}>
       <p><b>DNI:</b> {trabajador.dni}</p>
+
       <p>
         <b>Fecha de nacimiento:</b>{' '}
         {trabajador.fecha_nacimiento
           ? new Date(trabajador.fecha_nacimiento).toLocaleDateString('es-PE', {
-              timeZone: 'America/Lima',
               day: '2-digit',
               month: '2-digit',
-              year: 'numeric'
+              year: 'numeric',
+              timeZone: 'America/Lima'
             })
           : '-'}
       </p>
+
       <p>
         <b>Sexo:</b>{' '}
         {trabajador.sexo === 'M'
@@ -287,86 +291,105 @@ function App() {
           ? 'Femenino'
           : '-'}
       </p>
+
+      <p>
+        <b>Dirección:</b> {trabajador.direccion || '-'}
+      </p>
+
+      <p>
+        <b>Teléfono:</b> {trabajador.telefono || '-'}
+      </p>
     </div>
 
-    {/* NUEVA ATENCIÓN */}
-    <h3>Nueva atención</h3>
+    {/* luego sigue Nueva atención, historial, etc */}
 
-    <input
-      placeholder="Síntomas"
-      value={sintomas}
-      onChange={e => setSintomas(e.target.value)}
-    />
 
-    <input
-      placeholder="Buscar diagnóstico (CIE)"
-      value={cieQuery}
-      onChange={e => setCieQuery(e.target.value)}
-    />
-      {diagnostico && (
-        <div className="cie-seleccionado">
-          <strong>Diagnóstico seleccionado:</strong>
-          <div className="cie-box">
-            <span>{diagnostico.codigo}</span> — {diagnostico.descripcion}
+            <textarea
+  className="auto-textarea"
+  placeholder="Síntomas"
+  value={sintomas}
+  onChange={e => {
+    setSintomas(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = e.target.scrollHeight + 'px'
+  }}
+/>
+
+<textarea
+  className="auto-textarea"
+  placeholder="Recomendaciones"
+  value={recomendaciones}
+  onChange={e => {
+    setRecomendaciones(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = e.target.scrollHeight + 'px'
+  }}
+/>
+
+
+            <input
+              placeholder="Buscar diagnóstico (CIE)"
+              value={cieQuery}
+              onChange={e => setCieQuery(e.target.value)}
+            />
+
+            {cieResultados.map((c, i) => (
+              <div
+                key={i}
+                style={{ cursor: 'pointer', padding: '6px 0' }}
+                onClick={() => {
+                  setDiagnostico(c)
+                  setCieResultados([])
+                }}
+              >
+                <b>{c.codigo}</b> — {c.descripcion}
+              </div>
+            ))}
+
+            <button
+              disabled={!sintomas || !diagnostico}
+              onClick={registrarAtencion}
+            >
+              Guardar atención
+            </button>
+
+            <h3>Historial médico</h3>
+
+            {historial.length === 0 ? (
+              <p style={{ color: '#64748b' }}>No hay atenciones registradas</p>
+            ) : (
+              <div className="timeline">
+                {historial.map(h => (
+                  <div key={h.id} className="timeline-item">
+                    <div className="timeline-dot" />
+                    <div className="timeline-card">
+                      <div className="timeline-date">
+                        🕒 {formatearFechaHoraPE(h.fecha)}
+                      </div>
+
+                      <div className="timeline-section">
+                        <span className="label">Síntomas</span>
+                        <p>{h.sintomas}</p>
+                      </div>
+
+                      <div className="timeline-section">
+                        <span className="label">Diagnóstico (CIE)</span>
+                        <p className="cie-text">{h.cie}</p>
+                      </div>
+
+                      {h.recomendaciones && (
+                        <div className="timeline-section">
+                          <span className="label">Recomendaciones</span>
+                          <p>{h.recomendaciones}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
-
-    {cieResultados.map((c, i) => (
-      <div
-        key={i}
-        style={{ cursor: 'pointer', padding: '6px 0' }}
-        onClick={() => {
-  setDiagnostico(c)
-  setCieResultados([])
-}}
-
-      >
-        <b>{c.codigo}</b> — {c.descripcion}
-      </div>
-    ))}
-
-    <button
-      disabled={!sintomas || !diagnostico}
-      onClick={registrarAtencion}
-    >
-      Guardar atención
-    </button>
-
-    {/* HISTORIAL */}
-    <h3>Historial médico</h3>
-
-    {historial.length === 0 ? (
-      <p style={{ color: '#64748b' }}>
-        No hay atenciones registradas
-      </p>
-    ) : (
-      <div className="timeline">
-        {historial.map(h => (
-          <div key={h.id} className="timeline-item">
-            <div className="timeline-dot" />
-            <div className="timeline-card">
-              <div className="timeline-date">
-                🕒 {formatearFechaHoraPE(h.fecha)}
-              </div>
-
-              <div className="timeline-section">
-                <span className="label">Síntomas</span>
-                <p>{h.sintomas}</p>
-              </div>
-
-              <div className="timeline-section">
-                <span className="label">Diagnóstico (CIE)</span>
-                <p className="cie-text">{h.cie}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
-
+        )}
       </div>
 
       {/* MODAL REGISTRO */}
@@ -379,19 +402,13 @@ function App() {
             <input placeholder="Apellidos" value={nuevoApellido} onChange={e => setNuevoApellido(e.target.value)} />
             <input value={nuevoDni} disabled />
 
-            <div className={`field ${errores.sexo ? 'error' : ''}`}>
-  <label>Sexo</label>
-  <div className="select-wrapper">
-    <select value={sexo} onChange={e => setSexo(e.target.value)}>
-      <option value="">Seleccione sexo</option>
-      <option value="M">Masculino</option>
-      <option value="F">Femenino</option>
-    </select>
-    <span className="select-arrow">▾</span>
-  </div>
-  {errores.sexo && <span className="error-text">{errores.sexo}</span>}
-</div>
-
+            <div className="select-wrapper">
+              <select value={sexo} onChange={e => setSexo(e.target.value)}>
+                <option value="">Seleccione sexo</option>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+              </select>
+            </div>
 
             <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} />
             <input placeholder="Empresa" value={nuevaEmpresa} onChange={e => setNuevaEmpresa(e.target.value)} />
