@@ -127,19 +127,22 @@ function App() {
      BUSCAR CIE
   ======================= */
   const buscarCie = async (texto) => {
-    if (!texto) {
-      setCieResultados([])
-      return
-    }
+  if (!texto || texto.length < 2) {
+    setCieResultados([])
+    return
+  }
 
-    const { data } = await supabase
-      .from('cie')
-      .select('codigo, descripcion')
-      .ilike('codigo', `%${texto}%`)
-      .limit(10)
+  const { data, error } = await supabase
+    .from('cie')
+    .select('codigo, descripcion')
+    .ilike('descripcion', `%${texto}%`)
+    .limit(10)
 
+  if (!error) {
     setCieResultados(data || [])
   }
+}
+
 
   /* =======================
      REGISTRAR ATENCIÓN
@@ -300,16 +303,24 @@ function App() {
       value={cieQuery}
       onChange={e => setCieQuery(e.target.value)}
     />
+      {diagnostico && (
+        <div className="cie-seleccionado">
+          <strong>Diagnóstico seleccionado:</strong>
+          <div className="cie-box">
+            <span>{diagnostico.codigo}</span> — {diagnostico.descripcion}
+          </div>
+        </div>
+      )}
 
     {cieResultados.map((c, i) => (
       <div
         key={i}
         style={{ cursor: 'pointer', padding: '6px 0' }}
         onClick={() => {
-          setDiagnostico(c)
-          setCieResultados([])
-          setCieQuery('')
-        }}
+  setDiagnostico(c)
+  setCieResultados([])
+}}
+
       >
         <b>{c.codigo}</b> — {c.descripcion}
       </div>

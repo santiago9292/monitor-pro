@@ -414,3 +414,16 @@ button:disabled,
   background: #fef2f2;
 }
 
+.cie-seleccionado {
+  margin-top: 10px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.cie-box span {
+  font-weight: 700;
+  color: #1e40af;
+}
