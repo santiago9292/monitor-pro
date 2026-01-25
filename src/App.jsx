@@ -127,19 +127,28 @@ function App() {
      BUSCAR CIE
   ======================= */
   const buscarCie = async (texto) => {
-    if (!texto || texto.length < 2) {
-      setCieResultados([])
-      return
-    }
+  if (!texto || texto.trim().length < 2) {
+    setCieResultados([])
+    return
+  }
 
-    const { data } = await supabase
-      .from('cie')
-      .select('codigo, descripcion')
-      .ilike('descripcion', `%${texto}%`)
-      .limit(10)
+  const q = texto.trim()
 
+  const { data, error } = await supabase
+    .from('cie')
+    .select('codigo, descripcion')
+    .or(
+      `codigo.ilike.%${q}%,descripcion.ilike.%${q}%`
+    )
+    .limit(10)
+
+  if (error) {
+    console.error('Error buscando CIE:', error)
+  } else {
     setCieResultados(data || [])
   }
+}
+
 
   /* =======================
      REGISTRAR ATENCIÓN
