@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
-import BusquedaSeguimiento from '../pages/BusquedaSeguimiento.jsx'
-import Estadisticas from '../pages/Estadisticas.jsx'
+import BusquedaSeguimiento from './pages/BusquedaSeguimiento.jsx'
+import Estadisticas from './pages/Estadisticas.jsx'
 
 function App() {
   return (
