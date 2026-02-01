@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function ModalRegistroTrabajador({
@@ -7,6 +7,8 @@ export default function ModalRegistroTrabajador({
   onClose,
   onRegistrado
 }) {
+  const nombreRef = useRef(null)
+
   const [dni, setDni] = useState('')
   const [nombres, setNombres] = useState('')
   const [apellidos, setApellidos] = useState('')
@@ -18,9 +20,10 @@ export default function ModalRegistroTrabajador({
 
   const [guardando, setGuardando] = useState(false)
   const [exito, setExito] = useState(false)
-  const [cerrar, setCerrar] = useState(false)
 
-
+  /* =======================
+     INIT / RESET
+  ======================= */
   useEffect(() => {
     if (abierto) {
       setDni(dniInicial || '')
@@ -33,16 +36,28 @@ export default function ModalRegistroTrabajador({
       setTelefono('')
       setGuardando(false)
       setExito(false)
+
+      setTimeout(() => nombreRef.current?.focus(), 0)
     }
   }, [abierto, dniInicial])
 
+  /* =======================
+     ESC PARA CERRAR
+  ======================= */
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+
+    if (abierto) window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [abierto, onClose])
+
   if (!abierto) return null
-  if (cerrar) {
-  onClose()
-  return null
-}
 
-
+  /* =======================
+     GUARDAR
+  ======================= */
   const registrarTrabajador = async () => {
     if (
       !dni ||
@@ -54,13 +69,13 @@ export default function ModalRegistroTrabajador({
       !direccion.trim() ||
       !telefono.trim()
     ) {
-      alert('Debe completar todos los campos del trabajador')
+      alert('Debe completar todos los campos')
       return
     }
 
     setGuardando(true)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('trabajadores')
       .insert({
         dni,
@@ -72,6 +87,8 @@ export default function ModalRegistroTrabajador({
         direccion,
         telefono
       })
+      .select()
+      .single()
 
     if (error) {
       console.error(error)
@@ -80,14 +97,12 @@ export default function ModalRegistroTrabajador({
       return
     }
 
-    // ✅ ÉXITO
     setExito(true)
 
     setTimeout(() => {
-  setCerrar(true)      // 👈 fuerza cierre visual
-  onRegistrado()       // 👈 avisa al padre
-}, 1200)
-
+      onRegistrado(data)   // 👈 devuelve el trabajador creado
+      onClose()
+    }, 1200)
   }
 
   return (
@@ -102,6 +117,7 @@ export default function ModalRegistroTrabajador({
         )}
 
         <input
+          ref={nombreRef}
           placeholder="Nombres"
           value={nombres}
           onChange={e => setNombres(e.target.value)}
@@ -158,7 +174,7 @@ export default function ModalRegistroTrabajador({
 
         <div className="modal-actions">
           <button onClick={registrarTrabajador} disabled={guardando}>
-            {guardando ? 'Guardando...' : 'Guardar trabajador'}
+            {guardando ? 'Guardando…' : 'Guardar trabajador'}
           </button>
 
           <button
@@ -173,4 +189,3 @@ export default function ModalRegistroTrabajador({
     </div>
   )
 }
-
