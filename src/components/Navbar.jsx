@@ -4,13 +4,26 @@ import logo from '../assets/logo.png'
 export default function Navbar() {
   return (
     <nav className="navbar">
-      <div className="navbar-inner">
-        <img src={logo} alt="Logo" className="navbar-logo" />
+      <div className="navbar-left">
+  <img src={logo} className="navbar-logo" />
+
         <div>
-          <h1 className="navbar-title">MONITOR PRO®</h1>
-          <p className="navbar-subtitle">
-            Sistema de Vigilancia de Salud Ocupacional
-          </p>
+          <div>
+    <div className="navbar-title">MONITOR PRO®</div>
+    <div className="navbar-subtitle">
+      Sistema de Vigilancia de Salud Ocupacional
+    </div>
+    <a
+      href="https://desarrolloinka.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="powered-by"
+    >
+      powered by desarrolloinka.com
+    </a>
+  </div>
+
+
         </div>
       </div>
 
@@ -32,6 +45,16 @@ export default function Navbar() {
           }
         >
           Estadísticas y reportes
+        </NavLink>
+
+        {/* 👇 NUEVO LINK */}
+        <NavLink
+          to="/descansos-medicos"
+          className={({ isActive }) =>
+            isActive ? 'nav-link active' : 'nav-link'
+          }
+        >
+          Descansos médicos
         </NavLink>
       </div>
     </nav>

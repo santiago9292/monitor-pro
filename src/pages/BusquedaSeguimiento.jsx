@@ -352,34 +352,20 @@ function App() {
               <p style={{ color: '#64748b' }}>No hay atenciones registradas</p>
             ) : (
               <div className="timeline">
-                {historial.map(h => (
-                  <div key={h.id} className="timeline-item">
-                    <div className="timeline-dot" />
-                    <div className="timeline-card">
-                      <div className="timeline-date">
-                        🕒 {formatearFechaHoraPE(h.fecha)}
-                      </div>
+  {historial.map(item => (
+    <div key={item.id} className="timeline-item">
+      <div className="timeline-dot" />
+      <div className="timeline-card">
+        <div className="timeline-date">
+          {item.fecha}
+        </div>
+        <div>{item.diagnostico}</div>
+        <div className="label">{item.cie}</div>
+      </div>
+    </div>
+  ))}
+</div>
 
-                      <div className="timeline-section">
-                        <span className="label">Síntomas</span>
-                        <p>{h.sintomas}</p>
-                      </div>
-
-                      <div className="timeline-section">
-                        <span className="label">Diagnóstico (CIE)</span>
-                        <p className="cie-text">{h.cie}</p>
-                      </div>
-
-                      {h.recomendaciones && (
-                        <div className="timeline-section">
-                          <span className="label">Recomendaciones</span>
-                          <p>{h.recomendaciones}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
         )}
