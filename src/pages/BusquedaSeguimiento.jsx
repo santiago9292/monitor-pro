@@ -171,9 +171,10 @@ function BusquedaSeguimiento() {
     <div className="container">
       {toast && <div className="toast">{toast}</div>}
 
-      <div className={`grid ${!trabajador ? 'grid-center' : ''}`}>
+      <div className="grid">
         {/* CARD BÚSQUEDA */}
-        <div className="card">
+        <div className="card card-busqueda">
+
           <h3>Búsqueda por DNI</h3>
 
           <form onSubmit={e => { e.preventDefault(); buscar() }}>
@@ -189,7 +190,8 @@ function BusquedaSeguimiento() {
             </button>
           </form>
 
-          <p>{mensaje}</p>
+          <p className="mensaje-busqueda">{mensaje}</p>
+
         </div>
 
         {/* CARD TRABAJADOR */}

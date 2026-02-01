@@ -470,3 +470,20 @@ button:disabled {
   font-weight: 700;
   margin-bottom: 6px;
 }
+/* ================= CARD BUSQUEDA DNI ================= */
+.card-busqueda {
+  min-height: 230px;
+  max-height: 230px;   /* 🔒 clave */
+  display: flex;
+  flex-direction: column;
+}
+
+.card-busqueda form {
+  margin-bottom: 8px;
+}
+
+.card-busqueda .mensaje-busqueda {
+  min-height: 18px;
+  font-size: 13px;
+  color: #475569;
+}
