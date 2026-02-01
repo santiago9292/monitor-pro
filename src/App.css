@@ -41,3 +41,38 @@
   color: #888;
 }
 
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== DATOS DEL PACIENTE ===== */
+.paciente-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: left;
+  align-items: flex-start;
+}
+
+
+
+.paciente-info p {
+  margin: 4px 0;
+}
+
+/* En móvil vuelve a una columna */
+@media (max-width: 768px) {
+  .paciente-info {
+    grid-template-columns: 1fr;
+  }
+}

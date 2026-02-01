@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  LabelList
 } from 'recharts'
 import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import logoEmpresa from '../assets/logo.png'
+import '../App.css'
 
 function Estadisticas() {
   const [desde, setDesde] = useState('')
@@ -51,7 +60,10 @@ function Estadisticas() {
     })
 
     setPorCie(
-      Object.entries(cieMap).map(([cie, total]) => ({ cie, total }))
+      Object.entries(cieMap)
+        .map(([cie, total]) => ({ cie, total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10)
     )
 
     /* === POR DÍA === */
@@ -72,6 +84,7 @@ function Estadisticas() {
     data.forEach(r => {
       const t = r.trabajadores
       if (!t) return
+
       pacMap[t.dni] = pacMap[t.dni] || {
         nombre: `${t.nombres} ${t.apellidos}`,
         dni: t.dni,
@@ -80,7 +93,9 @@ function Estadisticas() {
       pacMap[t.dni].total++
     })
 
-    setTopPacientes(Object.values(pacMap).sort((a, b) => b.total - a.total))
+    setTopPacientes(
+      Object.values(pacMap).sort((a, b) => b.total - a.total)
+    )
   }
 
   /* =======================
@@ -148,13 +163,13 @@ function Estadisticas() {
       const t = r.trabajadores
       sheet.addRow([
         new Date(r.fecha).toLocaleDateString('es-PE'),
-        t?.dni,
-        `${t?.nombres} ${t?.apellidos}`,
+        t?.dni || '',
+        `${t?.nombres || ''} ${t?.apellidos || ''}`,
         t?.sexo === 'M' ? 'Masculino' : 'Femenino',
-        t?.fecha_nacimiento,
+        t?.fecha_nacimiento || '',
         r.cie,
         r.sintomas,
-        r.recomendaciones
+        r.recomendaciones || ''
       ])
     })
 
@@ -171,16 +186,17 @@ function Estadisticas() {
     <div>
       <h2>📊 Estadísticas y Reportes</h2>
 
+      {/* ===== FILTROS ===== */}
       <div className="card">
         <h3>Filtros</h3>
 
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
             <label>Fecha inicio</label>
             <input type="date" value={desde} onChange={e => setDesde(e.target.value)} />
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
             <label>Fecha fin</label>
             <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} />
           </div>
@@ -200,35 +216,56 @@ function Estadisticas() {
         </div>
       </div>
 
-      <div className="card">
-        <h3>Registros por enfermedad</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={porCie}>
-            <XAxis dataKey="cie" hide />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="total" fill="#2563eb" />
-          </BarChart>
-        </ResponsiveContainer>
+      {/* ===== GRÁFICOS LADO A LADO ===== */}
+      <div className="stats-grid">
+        <div className="card">
+          <h3>Registros por enfermedad</h3>
+
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={porCie}>
+              <XAxis dataKey="cie" hide />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="total" fill="#2563eb">
+                <LabelList
+                  dataKey="total"
+                  position="top"
+                  fill="#1f2937"
+                  fontSize={12}
+                  fontWeight={600}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="card">
+          <h3>Atenciones por día</h3>
+
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={porDia}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="fecha" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                dataKey="total"
+                stroke="#16a34a"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
-      <div className="card">
-        <h3>Atenciones por día</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={porDia}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="fecha" />
-            <YAxis />
-            <Tooltip />
-            <Line dataKey="total" stroke="#16a34a" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
+      {/* ===== TOP PACIENTES ===== */}
       <div className="card">
         <h3>Pacientes con más atenciones</h3>
+
         {topPacientes.slice(0, 5).map((p, i) => (
-          <p key={i}><b>{p.nombre}</b> ({p.dni}) — {p.total}</p>
+          <p key={i}>
+            <b>{p.nombre}</b> ({p.dni}) — {p.total}
+          </p>
         ))}
       </div>
     </div>

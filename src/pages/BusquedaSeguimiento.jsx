@@ -272,32 +272,18 @@ function App() {
     </h3>
 
     {/* 👇 AQUÍ VA ESTE BLOQUE */}
-    <div style={{ marginBottom: 16, fontSize: 14 }}>
-      <p><b>DNI:</b> {trabajador.dni}</p>
+    <div className="paciente-info">
+  <div>
+    <p><b>DNI:</b> {trabajador.dni}</p>
+    <p><b>Fecha de nacimiento:</b> {formatearFechaNacimiento(trabajador.fecha_nacimiento)}</p>
+    <p><b>Sexo:</b> {trabajador.sexo === 'M' ? 'Masculino' : 'Femenino'}</p>
+  </div>
 
-      <p>
-  <b>Fecha de nacimiento:</b>{' '}
-  {formatearFechaNacimiento(trabajador.fecha_nacimiento)}
-</p>
-
-
-      <p>
-        <b>Sexo:</b>{' '}
-        {trabajador.sexo === 'M'
-          ? 'Masculino'
-          : trabajador.sexo === 'F'
-          ? 'Femenino'
-          : '-'}
-      </p>
-
-      <p>
-        <b>Dirección:</b> {trabajador.direccion || '-'}
-      </p>
-
-      <p>
-        <b>Teléfono:</b> {trabajador.telefono || '-'}
-      </p>
-    </div>
+  <div>
+    <p><b>Dirección:</b> {trabajador.direccion || '-'}</p>
+    <p><b>Teléfono:</b> {trabajador.telefono || '-'}</p>
+  </div>
+</div>
 
     {/* luego sigue Nueva atención, historial, etc */}
 
