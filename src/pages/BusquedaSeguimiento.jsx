@@ -95,13 +95,16 @@ function BusquedaSeguimiento() {
     if (!data) {
       setMensaje('Trabajador no registrado')
       setNoExiste(true)
+      
     } else {
       setMensaje('')
       setTrabajador(data)
       cargarHistorial(data.id)
+      
     }
 
     setCargando(false)
+    
   }
 
   /* =======================
@@ -163,6 +166,52 @@ function BusquedaSeguimiento() {
   cargarHistorial(trabajador.id)
 }
 
+/* =======================
+   REGISTRAR TRABAJADOR
+======================= */
+const registrarTrabajador = async () => {
+  // validación mínima
+  if (
+    !nuevoNombre.trim() ||
+    !nuevoApellido.trim() ||
+    !sexo ||
+    !fechaNacimiento
+  ) {
+    alert('Complete los datos obligatorios del trabajador')
+    return
+  }
+
+  const { error } = await supabase
+    .from('trabajadores')
+    .insert({
+      dni: dni,
+      nombres: nuevoNombre,
+      apellidos: nuevoApellido,
+      sexo,
+      fecha_nacimiento: fechaNacimiento,
+      empresa: nuevaEmpresa,
+      direccion: nuevaDireccion,
+      telefono: nuevoTelefono
+    })
+
+  if (error) {
+    alert('Error al registrar trabajador')
+    return
+  }
+
+  // cerrar modal y volver a buscar
+  setMostrarModal(false)
+  setNoExiste(false)
+  setNuevoNombre('')
+  setNuevoApellido('')
+  setSexo('')
+  setFechaNacimiento('')
+  setNuevaEmpresa('')
+  setNuevaDireccion('')
+  setNuevoTelefono('')
+
+  buscar()
+}
 
   /* =======================
      RENDER
@@ -191,6 +240,17 @@ function BusquedaSeguimiento() {
           </form>
 
           <p className="mensaje-busqueda">{mensaje}</p>
+          {noExiste && (
+  <button
+    type="button"
+    className="btn-primary"
+    style={{ marginTop: 10 }}
+    onClick={() => setMostrarModal(true)}
+  >
+    ➕ Registrar trabajador
+  </button>
+)}
+
 
         </div>
 
@@ -259,7 +319,6 @@ function BusquedaSeguimiento() {
   )}
 </div>
 
-
             <button
               disabled={!sintomas || !diagnostico}
               onClick={registrarAtencion}
@@ -291,6 +350,70 @@ function BusquedaSeguimiento() {
           </div>
         )}
       </div>
+      {noExiste && mostrarModal && (
+  <div className="modal-overlay" onClick={() => setMostrarModal(false)}>
+    <div className="modal" onClick={e => e.stopPropagation()}>
+      <h3>Registro de trabajador</h3>
+
+      <input
+        placeholder="Nombres"
+        value={nuevoNombre}
+        onChange={e => setNuevoNombre(e.target.value)}
+      />
+
+      <input
+        placeholder="Apellidos"
+        value={nuevoApellido}
+        onChange={e => setNuevoApellido(e.target.value)}
+      />
+
+      <input value={dni} disabled />
+
+      <select value={sexo} onChange={e => setSexo(e.target.value)}>
+        <option value="">Seleccione sexo</option>
+        <option value="M">Masculino</option>
+        <option value="F">Femenino</option>
+      </select>
+
+      <input
+        type="date"
+        value={fechaNacimiento}
+        onChange={e => setFechaNacimiento(e.target.value)}
+      />
+
+      <input
+        placeholder="Empresa"
+        value={nuevaEmpresa}
+        onChange={e => setNuevaEmpresa(e.target.value)}
+      />
+
+      <input
+        placeholder="Dirección"
+        value={nuevaDireccion}
+        onChange={e => setNuevaDireccion(e.target.value)}
+      />
+
+      <input
+        placeholder="Teléfono"
+        value={nuevoTelefono}
+        onChange={e => setNuevoTelefono(e.target.value.replace(/\D/g, ''))}
+      />
+
+      <div className="modal-actions">
+        <button onClick={registrarTrabajador}>
+          Guardar trabajador
+        </button>
+
+        <button
+          className="btn-secondary"
+          onClick={() => setMostrarModal(false)}
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   )
 }
