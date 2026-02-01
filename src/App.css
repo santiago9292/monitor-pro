@@ -27,7 +27,8 @@
 }
 
 .navbar-logo {
-  height: 26px;
+  height: 35px;
+  margin-left: 20px;
 }
 
 .navbar-title {
@@ -427,4 +428,45 @@ button:disabled {
   font-weight: 600;
   margin-bottom: 12px;
   text-align: center;
+}
+/* ================= PACIENTE INFO ================= */
+.paciente-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 600px) {
+  .paciente-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= HISTORIAL MEDICO ================= */
+.historial-medico {
+  margin-top: 20px;
+  border-left: 2px solid #e5e7eb;
+  padding-left: 20px;
+}
+
+.historial-item {
+  margin-bottom: 20px;
+}
+
+.historial-fecha {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.historial-card {
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.historial-cie {
+  font-weight: 700;
+  margin-bottom: 6px;
 }
