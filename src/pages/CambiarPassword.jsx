@@ -1,40 +1,60 @@
 import { useState } from "react"
 import { supabase } from "../lib/supabase"
+import { useEffect, useState } from "react"
 
 export default function CambiarPassword() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [mensaje, setMensaje] = useState("")
   const [error, setError] = useState("")
-
-  const handleCambiarPassword = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setMensaje("")
-    setError("")
-
-    const { error } = await supabase.auth.updateUser({
-      password
-    })
-
-    if (error) {
-      setError("No se pudo actualizar la contraseña")
-      setLoading(false)
-      return
+useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    if (!data.session) {
+      // Si por alguna razón no hay sesión, obligamos a login
+      window.location.href = "/login"
     }
+  })
+}, [])
 
-    const { data: { user } } = await supabase.auth.getUser()
+const handleCambiarPassword = async (e) => {
+  e.preventDefault()
+  setLoading(true)
+  setMensaje("")
+  setError("")
 
-if (user) {
-  await supabase
-    .from("profiles")
-    .update({ password_set: true })
-    .eq("id", user.id)
+  const { data: sessionData } = await supabase.auth.getSession()
+
+  if (!sessionData.session) {
+    setError("Sesión no válida. Vuelve a iniciar sesión.")
+    setLoading(false)
+    return
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password
+  })
+
+  if (updateError) {
+    console.error("Error actualizando password:", updateError)
+    setError("No se pudo actualizar la contraseña. Intenta nuevamente.")
+    setLoading(false)
+    return
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    await supabase
+      .from("profiles")
+      .update({ password_set: true })
+      .eq("id", user.id)
+  }
+
+  setMensaje("Contraseña creada correctamente. Ya puedes usar el sistema.")
+  setPassword("")
+  setLoading(false)
 }
 
-setMensaje("Contraseña creada correctamente. Ya puedes usar el sistema.")
-
-  }
 
   return (
     <div className="card">
