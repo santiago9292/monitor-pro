@@ -6,7 +6,7 @@ const BUCKET = "descansos-medicos"
 
 export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
   const dniInputRef = useRef(null)
-
+  
   const [dni, setDni] = useState("")
   const [trabajador, setTrabajador] = useState(null)
   const [buscando, setBuscando] = useState(false)

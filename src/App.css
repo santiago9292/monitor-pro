@@ -560,3 +560,15 @@ button:disabled {
     flex-shrink: 0;
   }
 }
+.logout-btn {
+  width: auto;
+  padding: 6px 12px;
+  margin-left: 8px;
+  background-color: #dc2626;
+  color: #ffffff;
+  border-radius: 4px;
+}
+
+.logout-btn:hover {
+  background-color: #b91c1c;
+}
