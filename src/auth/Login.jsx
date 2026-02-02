@@ -1,18 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
 import { useNavigate } from "react-router-dom"
 import logo from "../assets/logo.png"
-import { useEffect } from "react"
-
-useEffect(() => {
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      navigate("/", { replace: true })
-    }
-  })
-}, [])
-
-
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -20,6 +9,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const navigate = useNavigate()
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        navigate("/", { replace: true })
+      }
+    })
+  }, [navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -45,19 +42,19 @@ export default function Login() {
     <div className="container">
       <div className="grid grid-center">
         <div className="card">
-           <img
-    src={logo}
-    alt="Monitor Pro"
-    style={{
-      display: "block",
-      margin: "0 auto 12px",
-      maxWidth: 120
-    }}
-  />
+          <img
+            src={logo}
+            alt="Monitor Pro"
+            style={{
+              display: "block",
+              margin: "0 auto 12px",
+              maxWidth: 120
+            }}
+          />
 
-  <h2 style={{ textAlign: "center", marginBottom: 4 }}>
-    Bienvenido a MONITOR PRO
-  </h2>
+          <h2 style={{ textAlign: "center", marginBottom: 4 }}>
+            Bienvenido a MONITOR PRO
+          </h2>
 
           <p
             style={{
@@ -90,44 +87,12 @@ export default function Login() {
             />
 
             {error && (
-              <p
-                style={{
-                  color: "#b91c1c",
-                  fontSize: 13,
-                  marginBottom: 10,
-                  textAlign: "center"
-                }}
-              >
-                {error}
-              </p>
+              <p className="form-error">{error}</p>
             )}
 
             <button type="submit" disabled={loading}>
               {loading ? "Ingresando..." : "Ingresar"}
             </button>
-
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: 12,
-                color: "#94a3b8",
-                marginBottom: 24
-              }}
-            >
-              <strong style={{ color: "#334155" }}>Monitor Pro</strong> · Powered by{" "}
-              <a
-                href="https://desarrolloinca.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: "#2563eb",
-                  textDecoration: "none",
-                  fontWeight: 500
-                }}
-              >
-                Desarrolloinca.com
-              </a>
-            </p>
           </form>
         </div>
       </div>

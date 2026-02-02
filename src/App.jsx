@@ -6,6 +6,8 @@ import DescansosMedicos from "./pages/DescansosMedicos.jsx"
 import Login from './auth/Login.jsx'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 import CrearUsuario from "./pages/CrearUsuario.jsx"
+import CambiarPassword from "./pages/CambiarPassword.jsx"
+
 
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
         {/* LOGIN SIN PROTECCIÓN */}
         <Route path="/login" element={<Login />} />
         <Route path="/usuarios/crear" element={<CrearUsuario />} />
+<Route path="/cambiar-password" element={<CambiarPassword />} />
+<Route path="/cambiar-password" element={<CambiarPassword />} />
 
 
         {/* TODO EL SISTEMA PROTEGIDO */}
