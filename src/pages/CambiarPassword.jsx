@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
-import { useEffect, useState } from "react"
+
 
 export default function CambiarPassword() {
   const [password, setPassword] = useState("")
