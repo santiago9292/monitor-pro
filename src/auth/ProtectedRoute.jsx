@@ -19,9 +19,10 @@ export default function ProtectedRoute({ children }) {
           .eq("id", data.session.user.id)
           .single()
 
-        if (profile && profile.password_set === false) {
-          setMustChangePassword(true)
-        }
+        if (!profile || profile.password_set === false) {
+  setMustChangePassword(true)
+}
+
       }
 
       setLoading(false)
