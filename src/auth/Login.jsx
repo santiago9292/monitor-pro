@@ -2,6 +2,16 @@ import { useState } from "react"
 import { supabase } from "../lib/supabase"
 import { useNavigate } from "react-router-dom"
 import logo from "../assets/logo.png"
+import { useEffect } from "react"
+
+useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      navigate("/", { replace: true })
+    }
+  })
+}, [])
+
 
 
 export default function Login() {
