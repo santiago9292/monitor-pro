@@ -16,7 +16,7 @@ export default function CrearUsuario() {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: "http://localhost:5173/login"
+      emailRedirectTo: `${window.location.origin}/login`
     }
   })
 
