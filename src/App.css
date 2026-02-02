@@ -572,3 +572,48 @@ button:disabled {
 .logout-btn:hover {
   background-color: #b91c1c;
 }
+/* =========================
+   CREAR USUARIO
+========================= */
+
+.create-user-card {
+  max-width: 420px;
+  width: 100%;
+}
+
+.create-user-title {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.create-user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-error {
+  color: #b91c1c;
+  font-size: 13px;
+  text-align: center;
+}
+
+.form-success {
+  color: #15803d;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 640px) {
+  .create-user-card {
+    padding: 20px;
+  }
+
+  .create-user-title {
+    font-size: 18px;
+  }
+}

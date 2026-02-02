@@ -5,6 +5,8 @@ import Estadisticas from './pages/Estadisticas.jsx'
 import DescansosMedicos from "./pages/DescansosMedicos.jsx"
 import Login from './auth/Login.jsx'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
+import CrearUsuario from "./pages/CrearUsuario.jsx"
+
 
 function App() {
   return (
@@ -12,6 +14,8 @@ function App() {
       <Routes>
         {/* LOGIN SIN PROTECCIÓN */}
         <Route path="/login" element={<Login />} />
+        <Route path="/usuarios/crear" element={<CrearUsuario />} />
+
 
         {/* TODO EL SISTEMA PROTEGIDO */}
         <Route
