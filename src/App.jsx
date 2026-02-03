@@ -25,7 +25,7 @@ function App() {
         <Route
           path="/*"
           element={
-            <ProtectedRoute>
+            
               <>
                 <Navbar />
                 <div className="container">
@@ -36,7 +36,7 @@ function App() {
                   </Routes>
                 </div>
               </>
-            </ProtectedRoute>
+           
           }
         />
       </Routes>
