@@ -61,6 +61,14 @@ export default function Navbar() {
         >
           Descansos médicos
         </NavLink>
+<NavLink
+  to="/examenes-medicos"
+  className={({ isActive }) =>
+    isActive ? 'nav-link active' : 'nav-link'
+  }
+>
+  Exámenes médicos
+</NavLink>
 
         {/* LOGOUT */}
         <button

@@ -7,6 +7,7 @@ import Login from './auth/Login.jsx'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 import CrearUsuario from "./pages/CrearUsuario.jsx"
 import CambiarPassword from "./pages/CambiarPassword.jsx"
+import ExamenesMedicos from "./pages/ExamenesMedicos.jsx"
 
 
 
@@ -21,6 +22,7 @@ function App() {
 <Route path="/cambiar-password" element={<CambiarPassword />} />
 
 
+
         {/* TODO EL SISTEMA PROTEGIDO */}
         <Route
           path="/*"
@@ -33,6 +35,7 @@ function App() {
                     <Route path="/" element={<BusquedaSeguimiento />} />
                     <Route path="/estadisticas" element={<Estadisticas />} />
                     <Route path="/descansos-medicos" element={<DescansosMedicos />} />
+                    <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
                   </Routes>
                 </div>
               </>
