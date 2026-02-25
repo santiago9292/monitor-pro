@@ -849,3 +849,351 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* LOGIN */
+.mp-login {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f2f6f9;
+}
+
+.mp-login-card {
+  width: 380px;
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+.mp-login-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.mp-login-card button {
+  width: 100%;
+  padding: 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}.mp-roles {
+  padding: 40px;
+  background-color: #f2f6f9;
+  min-height: 100vh;
+}
+
+.mp-roles-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.mp-roles-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mp-roles-table th,
+.mp-roles-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}/* ====== AUDITORÍA - MONITOR PRO ====== */
+
+.mp-audit {
+  padding: 40px;
+  background-color: #f2f6f9;
+  min-height: 100vh;
+}
+
+.mp-audit-header h2 {
+  margin-bottom: 5px;
+  color: #1e293b;
+}
+
+.mp-audit-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+/* FILTROS */
+
+.mp-audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  align-items: flex-end;
+}
+
+.mp-audit-filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-audit-filter-group label {
+  font-size: 13px;
+  margin-bottom: 5px;
+  color: #334155;
+}
+
+.mp-audit-filter-group input,
+.mp-audit-filter-group select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  min-width: 160px;
+}
+
+.mp-audit-filter-btn {
+  padding: 9px 16px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.mp-audit-filter-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* TABLA */
+
+.mp-audit-table-container {
+  background: white;
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.mp-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.mp-audit-table th {
+  background-color: #f8fafc;
+  text-align: left;
+  padding: 12px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.mp-audit-table td {
+  padding: 12px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #475569;
+}
+
+/* ACCIONES CON COLOR SUAVE */
+
+.mp-audit-action {
+  font-weight: 600;
+}
+
+.mp-audit-action.edit {
+  color: #f59e0b;
+}
+
+.mp-audit-action.create {
+  color: #16a34a;
+}
+
+.mp-audit-action.delete {
+  color: #dc2626;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  .mp-audit {
+    padding: 20px;
+  }
+
+  .mp-audit-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mp-audit-filter-btn {
+    width: 100%;
+  }
+}.mp-login-logo {
+  max-width: 160px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 25px;
+}@media (max-width: 480px) {
+  .mp-login-logo {
+    width: 110px;
+  }
+}/* ===== ROLES PRO ===== */
+
+.mp-roles {
+  padding: 40px;
+  background-color: #f2f6f9;
+  min-height: 100vh;
+}
+
+/* HEADER */
+
+.mp-roles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.mp-roles-header h2 {
+  margin-bottom: 5px;
+  color: #1e293b;
+}
+
+.mp-roles-header p {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.mp-roles-primary-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.mp-roles-primary-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* CARDS */
+
+.mp-roles-cards {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.mp-role-card {
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.mp-role-card h4 {
+  margin-bottom: 5px;
+}
+
+.mp-role-card span {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* TABLA */
+
+.mp-roles-table-container {
+  background: white;
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.mp-roles-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mp-roles-table th {
+  background: #f8fafc;
+  text-align: left;
+  padding: 14px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.mp-roles-table td {
+  padding: 14px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+/* BADGES */
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge.admin {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge.medico {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.usuario {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* STATUS */
+
+.status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ACTION */
+
+.mp-roles-action {
+  background: #e2e8f0;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}

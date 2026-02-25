@@ -3,12 +3,14 @@ import Navbar from './components/Navbar.jsx'
 import BusquedaSeguimiento from './pages/BusquedaSeguimiento.jsx'
 import Estadisticas from './pages/Estadisticas.jsx'
 import DescansosMedicos from "./pages/DescansosMedicos.jsx"
-import Login from './auth/Login.jsx'
+//import Login from './auth/Login.jsx'//
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 import CrearUsuario from "./pages/CrearUsuario.jsx"
 import CambiarPassword from "./pages/CambiarPassword.jsx"
 import ExamenesMedicos from "./pages/ExamenesMedicos.jsx"
-
+import Roles from "./pages/Roles.jsx"
+import Auditoria from "./pages/Auditoria.jsx"
+import Login from "./pages/Login.jsx"
 
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
                     <Route path="/estadisticas" element={<Estadisticas />} />
                     <Route path="/descansos-medicos" element={<DescansosMedicos />} />
                     <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
+                        <Route path="/roles" element={<Roles />} />
+    <Route path="/auditoria" element={<Auditoria />} />
                   </Routes>
                 </div>
               </>
