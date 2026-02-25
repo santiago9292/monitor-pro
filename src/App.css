@@ -1196,4 +1196,106 @@ button:disabled {
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
+}/* ===== CONSENTIMIENTO INFORMADO ===== */
+
+.mp-consent {
+  padding: 40px;
+  background-color: #f2f6f9;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.mp-consent-container {
+  width: 100%;
+  max-width: 900px;
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.mp-consent-header h2 {
+  margin-bottom: 5px;
+  color: #1e293b;
+}
+
+.mp-consent-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 30px;
+}
+
+.mp-consent-section {
+  margin-bottom: 35px;
+}
+
+.mp-consent-section h4 {
+  margin-bottom: 15px;
+  color: #334155;
+}
+
+.mp-consent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.mp-consent-grid input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.mp-consent-text {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.mp-consent-checkbox {
+  margin-top: 15px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mp-signature-box {
+  height: 120px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-style: italic;
+  background: #f8fafc;
+}
+
+.mp-signature-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 8px;
+}
+
+.mp-consent-submit {
+  width: 100%;
+  padding: 14px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.mp-consent-submit:hover {
+  background-color: #1d4ed8;
 }

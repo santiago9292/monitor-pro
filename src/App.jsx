@@ -11,6 +11,7 @@ import ExamenesMedicos from "./pages/ExamenesMedicos.jsx"
 import Roles from "./pages/Roles.jsx"
 import Auditoria from "./pages/Auditoria.jsx"
 import Login from "./pages/Login.jsx"
+import Consentimiento from "./pages/Consentimiento.jsx"
 
 
 function App() {
@@ -38,8 +39,9 @@ function App() {
                     <Route path="/estadisticas" element={<Estadisticas />} />
                     <Route path="/descansos-medicos" element={<DescansosMedicos />} />
                     <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
-                        <Route path="/roles" element={<Roles />} />
-    <Route path="/auditoria" element={<Auditoria />} />
+                    <Route path="/roles" element={<Roles />} />
+                    <Route path="/auditoria" element={<Auditoria />} />
+                    <Route path="/Consentimiento" element={<Consentimiento />} />
                   </Routes>
                 </div>
               </>
