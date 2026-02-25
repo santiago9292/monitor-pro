@@ -1298,4 +1298,50 @@ button:disabled {
 
 .mp-consent-submit:hover {
   background-color: #1d4ed8;
+}/* ===== RESPONSIVE CONSENTIMIENTO ===== */
+
+@media (max-width: 768px) {
+
+  .mp-consent {
+    padding: 20px;
+  }
+
+  .mp-consent-container {
+    padding: 25px;
+  }
+
+  .mp-consent-header h2 {
+    font-size: 20px;
+  }
+
+  .mp-consent-text {
+    max-height: 220px;
+    font-size: 13px;
+  }
+
+  .mp-signature-box {
+    height: 100px;
+  }
+
+  .mp-consent-submit {
+    font-size: 14px;
+    padding: 12px;
+  }
+
+}
+
+@media (max-width: 480px) {
+
+  .mp-consent {
+    padding: 15px;
+  }
+
+  .mp-consent-container {
+    padding: 20px;
+  }
+
+  .mp-consent-grid {
+    grid-template-columns: 1fr;
+  }
+
 }
