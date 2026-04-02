@@ -1,22 +1,82 @@
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import logo from "../assets/logo.png"
+import { supabase } from "../lib/supabase"
 
 export default function Login() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const navigate = useNavigate()
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        setError("Credenciales inválidas o error de conexión")
+        setLoading(false)
+      } else {
+        navigate("/")
+      }
+    } catch (err) {
+      setError("Error inesperado. Intente de nuevo.")
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="mp-login">
-      <div className="mp-login-card">
+      <form className="mp-login-card" onSubmit={handleLogin}>
         <img src={logo} alt="Monitor Pro" className="mp-login-logo" />
         <h1>MONITOR PRO®</h1>
         <p className="mp-login-subtitle">
           Sistema de Vigilancia de Salud Ocupacional
         </p>
 
-        <input type="email" placeholder="Correo electrónico" />
-        <input type="password" placeholder="Contraseña" />
+        {error && (
+          <div className="alert-error" style={{ 
+            background: '#fee2e2', 
+            color: '#b91c1c', 
+            padding: '10px', 
+            borderRadius: '6px', 
+            fontSize: '13px', 
+            marginBottom: '10px',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
 
-        <button>Iniciar Sesión</button>
+        <input 
+          type="email" 
+          placeholder="Correo electrónico" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input 
+          type="password" 
+          placeholder="Contraseña" 
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+        </button>
 
         <span className="mp-login-link">¿Olvidaste tu contraseña?</span>
-      </div>
+      </form>
     </div>
   )
 }

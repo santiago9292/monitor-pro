@@ -20,32 +20,27 @@ function App() {
       <Routes>
         {/* LOGIN SIN PROTECCIÓN */}
         <Route path="/login" element={<Login />} />
-        <Route path="/usuarios/crear" element={<CrearUsuario />} />
-<Route path="/cambiar-password" element={<CambiarPassword />} />
-<Route path="/cambiar-password" element={<CambiarPassword />} />
-
-
 
         {/* TODO EL SISTEMA PROTEGIDO */}
         <Route
           path="/*"
           element={
-            
-              <>
-                <Navbar />
-                <div className="container">
-                  <Routes>
-                    <Route path="/" element={<BusquedaSeguimiento />} />
-                    <Route path="/estadisticas" element={<Estadisticas />} />
-                    <Route path="/descansos-medicos" element={<DescansosMedicos />} />
-                    <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
-                    <Route path="/roles" element={<Roles />} />
-                    <Route path="/auditoria" element={<Auditoria />} />
-                    <Route path="/Consentimiento" element={<Consentimiento />} />
-                  </Routes>
-                </div>
-              </>
-           
+            <ProtectedRoute>
+              <Navbar />
+              <div className="container">
+                <Routes>
+                  <Route path="/" element={<BusquedaSeguimiento />} />
+                  <Route path="/estadisticas" element={<Estadisticas />} />
+                  <Route path="/descansos-medicos" element={<DescansosMedicos />} />
+                  <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
+                  <Route path="/roles" element={<Roles />} />
+                  <Route path="/auditoria" element={<Auditoria />} />
+                  <Route path="/consentimiento" element={<Consentimiento />} />
+                  <Route path="/usuarios/crear" element={<CrearUsuario />} />
+                  <Route path="/cambiar-password" element={<CambiarPassword />} />
+                </Routes>
+              </div>
+            </ProtectedRoute>
           }
         />
       </Routes>

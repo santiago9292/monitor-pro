@@ -36,7 +36,16 @@ const handleCambiarPassword = async (e) => {
 
   if (updateError) {
     console.error("Error actualizando password:", updateError)
-    setError("No se pudo actualizar la contraseña. Intenta nuevamente.")
+    
+    // Traducir mensajes comunes
+    let errorMsg = updateError.message;
+    if (errorMsg.includes("New password should be different")) {
+      errorMsg = "La nueva contraseña debe ser diferente a la actual."
+    } else if (errorMsg.includes("Password should be at least")) {
+      errorMsg = "La contraseña es muy corta (mínimo 6 caracteres)."
+    }
+
+    setError(errorMsg)
     setLoading(false)
     return
   }
@@ -44,18 +53,26 @@ const handleCambiarPassword = async (e) => {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    await supabase
+    const { error: profileError } = await supabase
       .from("profiles")
       .update({ password_set: true })
       .eq("id", user.id)
+
+    if (profileError) {
+      console.warn("No se pudo actualizar la tabla profiles (puede que no exista el esquema):", profileError)
+      // Continuamos porque la contraseña ya se actualizó en el servidor de auth
+    }
   }
 
-  setMensaje("Contraseña creada correctamente. Ya puedes usar el sistema.")
+  setMensaje("Contraseña actualizada correctamente. Redirigiendo...")
   setPassword("")
   setLoading(false)
+
+  // Redirigir al usuario al inicio después de un breve momento
+  setTimeout(() => {
+    window.location.href = "/"
+  }, 1500)
 }
-
-
   return (
     <div className="card">
       <h2>Cambiar contraseña</h2>
