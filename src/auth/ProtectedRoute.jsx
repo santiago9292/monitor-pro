@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase"
 export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [mustChangePassword, setMustChangePassword] = useState(false)
   const location = useLocation()
 
@@ -15,19 +16,21 @@ export default function ProtectedRoute({ children }) {
         setSession(data.session)
 
         if (data.session?.user) {
-          const { data: profile, error: profileError } = await supabase
+          const { data: userProfile, error: profileError } = await supabase
             .from("profiles")
-            .select("password_set")
+            .select("password_set, role")
             .eq("id", data.session.user.id)
             .single()
 
           if (profileError) {
-            console.warn("No se pudo verificar el perfil (posiblemente la tabla no exista):", profileError)
-            // No forzamos el cambio de contraseña si la tabla no existe o hay error
-          } else if (profile && profile.password_set === false) {
-            setMustChangePassword(true)
-          } else if (!profile) {
-            setMustChangePassword(true)
+            console.warn("No se pudo verificar el perfil:", profileError)
+          } else {
+            setProfile(userProfile)
+            
+            // Verificar si debe cambiar password
+            if (userProfile.password_set === false) {
+              setMustChangePassword(true)
+            }
           }
         }
       } catch (err) {
@@ -54,8 +57,16 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />
   }
 
+  // Obligar a cambio de password
   if (mustChangePassword && location.pathname !== "/cambiar-password") {
     return <Navigate to="/cambiar-password" replace />
+  }
+
+  // RESTRICCIÓN DE ROLES: Solo admin puede entrar a /roles y /auditoria
+  const adminOnlyRoutes = ["/roles", "/auditoria"]
+  if (adminOnlyRoutes.includes(location.pathname) && profile?.role !== "admin") {
+    console.warn("Acceso denegado: Se requiere rol de administrador.")
+    return <Navigate to="/" replace />
   }
 
   return children

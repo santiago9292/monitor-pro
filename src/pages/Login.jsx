@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import logo from "../assets/logo.png"
 import { supabase } from "../lib/supabase"
+import logo from "../assets/logo.png"
+import { auditService } from "../services/auditService"
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -25,6 +26,12 @@ export default function Login() {
         setError("Credenciales inválidas o error de conexión")
         setLoading(false)
       } else {
+        // AUDITORÍA: Registro de inicio de sesión exitoso
+        await auditService.record({
+          action: 'LOGIN',
+          module: 'Autenticación',
+          description: `El usuario ${email} inició sesión en el sistema.`
+        });
         navigate("/")
       }
     } catch (err) {

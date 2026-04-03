@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
+import { auditService } from "../services/auditService"
 import ModalRegistroTrabajador from "./ModalRegistroTrabajador"
 
 const BUCKET = "descansos-medicos"
@@ -163,6 +164,14 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
           .eq("id", data.id)
       }
     }
+
+    // AUDITORÍA: Registro de creación exitosa de Descanso Médico
+    await auditService.record({
+      action: 'CREATE',
+      module: 'Descansos Médicos',
+      description: `Registró un descanso médico (${tipo}) para el trabajador ${trabajador.nombres} ${trabajador.apellidos} (DNI ${trabajador.dni}) desde ${fechaInicio} hasta ${fechaFin}`,
+      details: { worker_id: trabajador.id, fecha_inicio: fechaInicio, fecha_fin: fechaFin }
+    });
 
     setGuardando(false)
     setGuardadoOk(true)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { supabase } from '../lib/supabase'
@@ -6,6 +6,25 @@ import { supabase } from '../lib/supabase'
 export default function Navbar() {
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
+  const [role, setRole] = useState(null)
+
+  useEffect(() => {
+    async function getProfile() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        
+        if (!error && data) {
+          setRole(data.role)
+        }
+      }
+    }
+    getProfile()
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -50,23 +69,28 @@ export default function Navbar() {
               Exámenes médicos
             </NavLink>
             
-            <NavLink to="/auditoria" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Auditoría
-            </NavLink>
-            
             <NavLink to="/consentimiento" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
               Consentimiento
             </NavLink>
 
             <div className="nav-divider"></div>
 
-            <NavLink to="/roles" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Roles
-            </NavLink>
+            {/* OPCIONES DE ADMINISTRADOR */}
+            {role === 'admin' && (
+              <>
+                <NavLink to="/roles" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Roles
+                </NavLink>
 
-            <NavLink to="/usuarios/crear" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Crear Usuario
-            </NavLink>
+                <NavLink to="/usuarios/crear" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Crear Usuario
+                </NavLink>
+
+                <NavLink to="/auditoria" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Auditoría
+                </NavLink>
+              </>
+            )}
 
             <NavLink to="/cambiar-password" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
               Seguridad

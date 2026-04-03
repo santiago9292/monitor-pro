@@ -7,6 +7,7 @@ import {
 } from "../utils/emoEstado"
 import logo from "../assets/logo.png"
 import ExcelJS from "exceljs"
+import { auditService } from "../services/auditService"
 
 export default function ExamenesMedicos() {
   const [emos, setEmos] = useState([])
@@ -105,6 +106,13 @@ const exportarExcel = async () => {
   link.download = "monitor_pro_emos.xlsx"
   link.click()
   URL.revokeObjectURL(url)
+
+  // AUDITORÍA: Registro de exportación a Excel
+  await auditService.record({
+    action: 'EXPORT',
+    module: 'Exámenes Médicos',
+    description: `Exportó el listado de EMOs filtrados (${emosFiltrados.length} registros) a un archivo Excel.`
+  });
 }
 
   useEffect(() => {

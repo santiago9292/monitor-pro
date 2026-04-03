@@ -1,4 +1,74 @@
+import { useState, useEffect } from 'react';
+import { auditService } from '../services/auditService';
+
 export default function Auditoria() {
+  const [logs, setLogs] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Filtros
+  const [filterDesde, setFilterDesde] = useState('');
+  const [filterHasta, setFilterHasta] = useState('');
+  const [filterUser, setFilterUser] = useState('Todos');
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  async function loadInitialData() {
+    setLoading(true);
+    try {
+      const [dataLogs, dataUsers] = await Promise.all([
+        auditService.getLogs(),
+        auditService.getUniqueUsers()
+      ]);
+      setLogs(dataLogs);
+      setUsers(dataUsers);
+    } catch (error) {
+      console.error('Error loading audit data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleFilter = async () => {
+    setLoading(true);
+    try {
+      const filteredLogs = await auditService.getLogs({
+        since: filterDesde,
+        until: filterHasta,
+        user: filterUser
+      });
+      setLogs(filteredLogs);
+    } catch (error) {
+      console.error('Error filtering logs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDateTime = (isoString) => {
+    if (!isoString) return '-';
+    return new Date(isoString).toLocaleString('es-PE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getActionClass = (action) => {
+    switch (action) {
+      case 'CREATE': return 'create';
+      case 'UPDATE': return 'edit';
+      case 'DELETE': return 'delete';
+      case 'VIEW': return 'view';
+      case 'LOGIN': return 'login';
+      default: return '';
+    }
+  };
+
   return (
     <div className="mp-audit">
       <div className="mp-audit-header">
@@ -11,70 +81,86 @@ export default function Auditoria() {
       <div className="mp-audit-filters">
         <div className="mp-audit-filter-group">
           <label>Desde</label>
-          <input type="date" />
+          <input 
+            type="date" 
+            value={filterDesde}
+            onChange={(e) => setFilterDesde(e.target.value)}
+          />
         </div>
 
         <div className="mp-audit-filter-group">
           <label>Hasta</label>
-          <input type="date" />
+          <input 
+            type="date" 
+            value={filterHasta}
+            onChange={(e) => setFilterHasta(e.target.value)}
+          />
         </div>
 
         <div className="mp-audit-filter-group">
           <label>Usuario</label>
-          <select>
-            <option>Todos</option>
-            <option>admin@empresa.com</option>
-            <option>medico@empresa.com</option>
+          <select 
+            value={filterUser}
+            onChange={(e) => setFilterUser(e.target.value)}
+          >
+            <option value="Todos">Todos</option>
+            {users.map(u => (
+              <option key={u} value={u}>{u}</option>
+            ))}
           </select>
         </div>
 
-        <button className="mp-audit-filter-btn">
-          Filtrar
+        <button 
+          className="mp-audit-filter-btn"
+          onClick={handleFilter}
+          disabled={loading}
+        >
+          {loading ? 'Cargando...' : 'Filtrar'}
         </button>
       </div>
 
       <div className="mp-audit-table-container">
-        <table className="mp-audit-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Usuario</th>
-              <th>Acción</th>
-              <th>Módulo</th>
-              <th>Descripción</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>24/02/2026 10:35</td>
-              <td>admin@empresa.com</td>
-              <td className="mp-audit-action edit">EDITÓ</td>
-              <td>Trabajador</td>
-              <td>Modificó el DNI del trabajador Juan Pérez</td>
-              <td>192.168.1.10</td>
-            </tr>
-
-            <tr>
-              <td>23/02/2026 16:20</td>
-              <td>medico@empresa.com</td>
-              <td className="mp-audit-action create">CREÓ</td>
-              <td>Descanso Médico</td>
-              <td>Registró nuevo descanso médico</td>
-              <td>192.168.1.15</td>
-            </tr>
-
-            <tr>
-              <td>22/02/2026 09:12</td>
-              <td>admin@empresa.com</td>
-              <td className="mp-audit-action delete">ELIMINÓ</td>
-              <td>Trabajador</td>
-              <td>Eliminó registro duplicado</td>
-              <td>192.168.1.10</td>
-            </tr>
-          </tbody>
-        </table>
+        {loading && logs.length === 0 ? (
+          <div className="mp-audit-loading">Cargando registros...</div>
+        ) : (
+          <table className="mp-audit-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Módulo</th>
+                <th>Descripción</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
+                    No se encontraron registros de auditoría.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id}>
+                    <td>{formatDateTime(log.created_at)}</td>
+                    <td>{log.user_email}</td>
+                    <td>
+                      <span className={`mp-audit-action ${getActionClass(log.action)}`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td>{log.module}</td>
+                    <td>{log.description}</td>
+                    <td>{log.ip_address}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
-  )
+  );
 }

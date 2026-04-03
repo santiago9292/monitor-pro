@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
+import { auditService } from "../services/auditService"
 import ModalRegistroTrabajador from "./ModalRegistroTrabajador"
 
 const BUCKET = "emos"
@@ -137,6 +138,23 @@ export default function ModalRegistroEMO({ abierto, onClose, onGuardado }) {
           .update({ archivo_url: urlData.publicUrl })
           .eq("id", data.id)
       }
+    }
+
+    // 3️⃣ REGISTRO DE AUDITORÍA
+    try {
+      await auditService.record({
+        action: 'CREATE',
+        module: 'Exámenes Médicos',
+        description: `Registró un EMO tipo ${tipo} para el trabajador ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni})`,
+        details: { 
+          emo_id: data.id, 
+          tipo, 
+          resultado, 
+          tiene_archivo: !!archivo 
+        }
+      });
+    } catch (auditErr) {
+      console.warn("No se pudo registrar la auditoría:", auditErr);
     }
 
     setGuardando(false)

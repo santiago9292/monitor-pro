@@ -1062,6 +1062,18 @@ button:disabled {
   color: #dc2626;
 }
 
+.mp-audit-action.view {
+  color: #3b82f6;
+}
+
+.mp-audit-action.login {
+  color: #8b5cf6;
+}
+
+.mp-audit-action.export {
+  color: #0d9488;
+}
+
 /* RESPONSIVE */
 
 @media (max-width: 768px) {

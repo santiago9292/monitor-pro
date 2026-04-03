@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { auditService } from '../services/auditService'
+import { consentService } from '../services/consentService'
 import logo from '../assets/logo.png'
 import ModalRegistroTrabajador from '../components/ModalRegistroTrabajador'
 
@@ -15,6 +17,7 @@ function BusquedaSeguimiento() {
   const [noExiste, setNoExiste] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [toast, setToast] = useState('')
+  const [consentimiento, setConsentimiento] = useState(null)
 
   const [sintomas, setSintomas] = useState('')
   const [recomendaciones, setRecomendaciones] = useState('')
@@ -85,6 +88,7 @@ function BusquedaSeguimiento() {
     setCargando(true)
     setMensaje('Buscando trabajador...')
     setTrabajador(null)
+    setConsentimiento(null) // Reset
     setHistorial([])
     setNoExiste(false)
 
@@ -102,7 +106,18 @@ function BusquedaSeguimiento() {
       setMensaje('')
       setTrabajador(data)
       cargarHistorial(data.id)
+
+      // Cargar consentimiento
+      const cons = await consentService.getConsentByDni(dni)
+      setConsentimiento(cons)
       
+      // AUDITORÍA
+      await auditService.record({
+        action: 'VIEW',
+        module: 'Trabajadores',
+        description: `Visualizó los datos y el historial médico del trabajador ${data.nombres} ${data.apellidos} con DNI ${dni}`,
+        details: { dni, worker_id: data.id }
+      });
     }
 
     setCargando(false)
@@ -231,6 +246,29 @@ function BusquedaSeguimiento() {
                 <p><b>Teléfono:</b> {trabajador.telefono || '-'}</p>
               </div>
             </div>
+
+            {/* BOTÓN CONSENTIMIENTO SI EXISTE */}
+            {consentimiento && (
+              <div style={{ marginTop: '10px', marginBottom: '15px' }}>
+                <a 
+                  href={consentimiento.pdf_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="mp-roles-primary-btn"
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    background: '#0d9488',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    padding: '8px 14px'
+                  }}
+                >
+                  📄 Descargar Consentimiento Firmado
+                </a>
+              </div>
+            )}
 
             {/* NUEVA ATENCIÓN */}
             <textarea

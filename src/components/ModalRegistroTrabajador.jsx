@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { auditService } from '../services/auditService'
 
 export default function ModalRegistroTrabajador({
   abierto,
@@ -96,6 +97,14 @@ export default function ModalRegistroTrabajador({
       setGuardando(false)
       return
     }
+
+    // AUDITORÍA: Registro de creación exitosa
+    await auditService.record({
+      action: 'CREATE',
+      module: 'Trabajadores',
+      description: `Registró al trabajador ${nombres} ${apellidos} con DNI ${dni}`,
+      details: { dni, nombre: `${nombres} ${apellidos}` }
+    });
 
     setExito(true)
 
