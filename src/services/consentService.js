@@ -70,21 +70,33 @@ export const consentService = {
     const evidenceY = y + 75;
     
     // Firma
-    if (signatureBase64) {
+    if (signatureBase64 && signatureBase64.startsWith('data:image')) {
       doc.setFont('helvetica', 'bold');
       doc.text('FIRMA BIOMÉTRICA:', margin, evidenceY);
-      doc.addImage(signatureBase64, 'PNG', margin, evidenceY + 5, 60, 30);
+      try {
+        doc.addImage(signatureBase64, 'PNG', margin, evidenceY + 5, 60, 30);
+      } catch (e) {
+        console.error('Error al añadir firma al PDF:', e);
+      }
       doc.line(margin, evidenceY + 35, margin + 60, evidenceY + 35);
       doc.setFontSize(8);
       doc.text('Firma Digital del Colaborador', margin, evidenceY + 40);
     }
 
     // Foto Selfie
-    if (photoBase64) {
+    if (photoBase64 && photoBase64.startsWith('data:image')) {
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text('VALIDACIÓN DE IDENTIDAD:', pageWidth - margin - 50, evidenceY);
-      doc.addImage(photoBase64, 'JPEG', pageWidth - margin - 50, evidenceY + 5, 50, 40);
+      
+      try {
+        doc.addImage(photoBase64, 'JPEG', pageWidth - margin - 50, evidenceY + 5, 50, 40);
+      } catch (e) {
+        console.error('Error al añadir foto al PDF:', e);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text('[Error en carga de imagen]', pageWidth - margin - 50, evidenceY + 10);
+      }
     }
 
     // 6. Pie de página con Testigo

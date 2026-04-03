@@ -37,14 +37,33 @@ export default function CameraCapture({ onCapture, onClear }) {
   const capturePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    
+    if (!video || !canvas || video.videoWidth === 0) {
+      console.error('Error: El video no está listo para captura');
+      setError('Cámara no lista. Espere un segundo y reintente.');
+      return;
+    }
+
     const ctx = canvas.getContext('2d');
     
-    // Capturar frame actual
+    // Capturar frame actual con Mirroring (para que coincida con la vista previa)
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+    // Validación mínima de base64 (debe tener longitud suficiente)
+    if (dataUrl.length < 1000) {
+      setError('Error al capturar la imagen. Intente de nuevo.');
+      return;
+    }
+
     setPhoto(dataUrl);
     onCapture(dataUrl);
     stopCamera();
@@ -73,22 +92,25 @@ export default function CameraCapture({ onCapture, onClear }) {
             fontWeight: '600',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '8px',
-            margin: '20px auto'
+            margin: '20px auto',
+            width: '100%'
           }}
         >
           📷 Abrir Cámara (Selfie)
         </button>
       )}
 
-      {error && <p style={{ color: '#ef4444', fontSize: '14px' }}>{error}</p>}
+      {error && <p style={{ color: '#ef4444', fontSize: '13px', background: '#fee2e2', padding: '8px', borderRadius: '6px', marginBottom: '10px' }}>{error}</p>}
 
       {stream && !photo && (
-        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px', border: '3px solid #3b82f6' }}>
+        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px', border: '3px solid #3b82f6', background: '#000' }}>
           <video 
             ref={videoRef} 
             autoPlay 
             playsInline 
+            onLoadedMetadata={() => setError(null)}
             style={{ width: '100%', display: 'block', transform: 'scaleX(-1)' }} 
           />
           <button 
@@ -99,16 +121,21 @@ export default function CameraCapture({ onCapture, onClear }) {
               bottom: '15px',
               left: '50%',
               transform: 'translateX(-50%)',
-              width: '60px',
-              height: '60px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
               background: '#fff',
-              border: '4px solid #3b82f6',
+              border: '5px solid #3b82f6',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             aria-label="Capturar"
-          />
+          >
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid #3b82f6' }}></div>
+          </button>
         </div>
       )}
 
@@ -117,17 +144,39 @@ export default function CameraCapture({ onCapture, onClear }) {
           <img 
             src={photo} 
             alt="Selfie de validación" 
-            style={{ width: '100%', borderRadius: '12px', display: 'block', transform: 'scaleX(-1)', border: '3px solid #16a34a' }} 
+            onError={() => setError('Error al cargar la imagen capturada. Reintente.')}
+            style={{ width: '100%', borderRadius: '12px', display: 'block', border: '3px solid #16a34a' }} 
           />
-          <div style={{ position: 'absolute', top: '10px', right: '10px', background: '#16a34a', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+          <div style={{ 
+            position: 'absolute', 
+            top: '12px', 
+            right: '12px', 
+            background: '#16a34a', 
+            color: '#fff', 
+            padding: '6px 12px', 
+            borderRadius: '6px', 
+            fontSize: '12px', 
+            fontWeight: 'bold',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+          }}>
             ✔️ Capturado
           </div>
           <button 
             type="button"
             onClick={retry}
-            style={{ margin: '10px auto', background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
+            style={{ 
+              margin: '12px auto', 
+              background: '#f1f5f9', 
+              border: '1px solid #cbd5e1', 
+              padding: '6px 15px',
+              borderRadius: '6px',
+              color: '#475569', 
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500'
+            }}
           >
-            Tomar otra foto
+            🔄 Tomar otra foto
           </button>
         </div>
       )}
