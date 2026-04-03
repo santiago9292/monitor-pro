@@ -7,104 +7,155 @@ export const consentService = {
   /**
    * Genera un PDF profesional con los datos, firma y foto.
    */
-  async generatePDF(data, signatureBase64, photoBase64) {
+  /**
+   * Genera un PDF profesional con los datos, firma y foto.
+   */
+  async generatePDF(data, signatureBase64, photoBase64, logoUrl) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
 
-    // 1. Header con Logo (si está disponible, sino texto premium)
-    doc.setFontSize(22);
-    doc.setTextColor(30, 41, 59); // Slate 800
-    doc.text('MONITOR PRO®', margin, 25);
+    // --- WATERMARK (Logo Vitacorp Centrado y Tenue) ---
+    if (logoUrl) {
+      try {
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.1 }));
+        const wmWidth = pageWidth / 2;
+        const wmHeight = wmWidth * 0.8; // Reducción de altura del 20%
+        doc.addImage(logoUrl, 'PNG', (pageWidth - wmWidth) / 2, pageHeight / 3, wmWidth, wmHeight);
+        doc.restoreGraphicsState();
+      } catch (e) {
+        console.warn('Watermark failed, skipping...', e);
+      }
+    }
+
+    // --- HEADER ---
+    // Logo en la esquina superior derecha (Altura reducida 20% para armonía)
+    if (logoUrl) {
+      try {
+        const logoWidth = 40;
+        const logoHeight = logoWidth * 0.8; // Reducción de altura del 20%
+        doc.addImage(logoUrl, 'PNG', pageWidth - margin - logoWidth, 12, logoWidth, logoHeight);
+      } catch (e) {
+        console.error('Error al añadir logo al header:', e);
+      }
+    }
+
+    // Nota: Se eliminó el texto de Monitor Pro en la esquina superior izquierda a pedido del usuario.
     
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139); // Slate 500
-    doc.text('Vigilancia de Salud Ocupacional', margin, 32);
     doc.setDrawColor(226, 232, 240); // Slate 200
-    doc.line(margin, 38, pageWidth - margin, 38);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 42, pageWidth - margin, 42);
 
-    // 2. Título de Documento
-    doc.setFontSize(16);
-    doc.setTextColor(30, 41, 59);
-    doc.text('CONSENTIMIENTO INFORMADO', pageWidth / 2, 55, { align: 'center' });
-
-    // 3. Datos del Colaborador
-    doc.setFontSize(12);
+    // --- TÍTULO DE DOCUMENTO ---
+    doc.setFontSize(18);
+    doc.setTextColor(15, 23, 42);
     doc.setFont('helvetica', 'bold');
-    doc.text('DATOS DEL COLABORADOR:', margin, 70);
+    doc.text('CONSENTIMIENTO INFORMADO', pageWidth / 2, 58, { align: 'center' });
+
+    // --- DATOS DEL COLABORADOR ---
+    doc.setFillColor(248, 250, 252); 
+    doc.rect(margin, 65, pageWidth - (margin * 2), 42, 'F');
+    
+    doc.setFontSize(11);
+    doc.setTextColor(71, 85, 105);
+    doc.text('DATOS DEL COLABORADOR:', margin + 5, 72);
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
     const details = [
-      `Nombre: ${data.nombre} ${data.apellidos}`,
+      `Nombre: ${(data.nombre || '').toUpperCase()} ${(data.apellidos || '').toUpperCase()}`,
       `DNI: ${data.dni}`,
-      `Cargo: ${data.cargo || 'No especificado'}`,
-      `Empresa: ${data.empresa || 'No especificada'}`,
-      `Fecha: ${new Date().toLocaleDateString()}`
+      `Cargo: ${(data.cargo || 'NO ESPECIFICADO').toUpperCase()}`,
+      `Empresa: ${(data.empresa || 'NO ESPECIFICADA').toUpperCase()}`,
+      `Fecha de Registro: ${new Date().toLocaleDateString()}`
     ];
     
-    let y = 78;
+    let y = 79;
     details.forEach(line => {
-      doc.text(line, margin, y);
-      y += 7;
+      doc.text(line, margin + 5, y);
+      y += 6.5;
     });
 
-    // 4. Cuerpo de Consentimiento
+    // --- CUERPO DE CONSENTIMIENTO ---
     doc.setFont('helvetica', 'bold');
-    doc.text('DECLARACIÓN:', margin, y + 10);
+    doc.setFontSize(11);
+    doc.text('DECLARACIÓN Y AUTORIZACIÓN:', margin, y + 12);
+    
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(10.5);
+    doc.setTextColor(51, 65, 85);
     
     const legalText = [
-      'Declaro haber sido informado de manera clara y suficiente que mis datos personales y datos sensibles relacionados con mi salud ocupacional serán recopilados y tratados por la empresa responsable del sistema MONITOR PRO®, con la finalidad de gestionar la vigilancia de salud ocupacional y cumplir obligaciones legales en materia de seguridad y salud en el trabajo.',
+      'Por la presente, AUTORIZO de manera voluntaria, previa e informada el tratamiento de mis datos personales y sensibles relacionados con mi salud ocupacional. Entiendo que esta información será recopilada, procesada y resguardada por el sistema MONITOR PRO®, bajo la responsabilidad de VITACORP 360.',
       '',
-      'Autorizo expresamente el tratamiento de datos de identificación, datos laborales, resultados de exámenes médicos y descansos médicos.',
+      'Esta autorización permite la gestión de la vigilancia médica, resultados de exámenes ocupacionales y descansos médicos, cumpliendo estrictamente con la Ley de Protección de Datos Personales y las normativas de Seguridad y Salud en el Trabajo vigentes.',
       '',
-      'Declaro conocer que puedo ejercer mis derechos de acceso, rectificación, cancelación y oposición (ARCO).'
+      'Declaro haber sido informado sobre mi derecho a revocar este consentimiento o ejercer mis derechos ARCO (Acceso, Rectificación, Cancelación y Oposición) en cualquier momento ante el área correspondiente.'
     ];
 
     const splitText = doc.splitTextToSize(legalText.join('\n'), pageWidth - (margin * 2));
-    doc.text(splitText, margin, y + 18);
+    doc.text(splitText, margin, y + 20);
     
-    // 5. Evidencias Digitales
-    const evidenceY = y + 75;
+    // --- EVIDENCIAS DIGITALES (Firma y Foto) ---
+    const evidenceY = y + 85;
+
+    // Caja para firmas
+    doc.setDrawColor(241, 245, 249);
+    doc.line(margin, evidenceY - 5, pageWidth - margin, evidenceY - 5);
     
     // Firma
     if (signatureBase64 && signatureBase64.startsWith('data:image')) {
       doc.setFont('helvetica', 'bold');
-      doc.text('FIRMA BIOMÉTRICA:', margin, evidenceY);
+      doc.setFontSize(10);
+      doc.text('FIRMA BIOMÉTRICA:', margin, evidenceY + 5);
       try {
-        doc.addImage(signatureBase64, 'PNG', margin, evidenceY + 5, 60, 30);
+        doc.addImage(signatureBase64, 'PNG', margin, evidenceY + 10, 55, 25);
       } catch (e) {
         console.error('Error al añadir firma al PDF:', e);
       }
-      doc.line(margin, evidenceY + 35, margin + 60, evidenceY + 35);
+      doc.line(margin, evidenceY + 36, margin + 55, evidenceY + 36);
       doc.setFontSize(8);
-      doc.text('Firma Digital del Colaborador', margin, evidenceY + 40);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Firma Digital del Colaborador', margin, evidenceY + 41);
     }
 
     // Foto Selfie
     if (photoBase64 && photoBase64.startsWith('data:image')) {
-      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('VALIDACIÓN DE IDENTIDAD:', pageWidth - margin - 50, evidenceY);
+      doc.setFontSize(10);
+      doc.text('VALIDACIÓN DE IDENTIDAD:', pageWidth - margin - 50, evidenceY + 5);
       
       try {
-        doc.addImage(photoBase64, 'JPEG', pageWidth - margin - 50, evidenceY + 5, 50, 40);
+        // Marco para la foto
+        doc.setDrawColor(203, 213, 225);
+        doc.rect(pageWidth - margin - 50.5, evidenceY + 9.5, 51, 41);
+        doc.addImage(photoBase64, 'JPEG', pageWidth - margin - 50, evidenceY + 10, 50, 40);
       } catch (e) {
         console.error('Error al añadir foto al PDF:', e);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'italic');
-        doc.text('[Error en carga de imagen]', pageWidth - margin - 50, evidenceY + 10);
       }
     }
 
-    // 6. Pie de página con Testigo
-    doc.setFontSize(9);
+    // --- PIE DE PÁGINA PROFESIONAL ---
+    doc.setFontSize(8.5);
     doc.setTextColor(148, 163, 184); // Slate 400
-    const footerY = doc.internal.pageSize.getHeight() - 20;
-    doc.text(`Documento generado electrónicamente en presencia de: ${data.testigo_email}`, margin, footerY);
-    doc.text(`IP de registro: ${data.ip_address || 'CAPTURA_DIGITAL'}`, margin, footerY + 5);
+    const footerY = doc.internal.pageSize.getHeight() - 25;
+    
+    doc.setDrawColor(241, 245, 249);
+    doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+
+    doc.text(`Este documento fue presenciado y validado electrónicamente por:`, margin, footerY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text(data.testigo_email, margin, footerY + 4.5);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(`IP de Registro: ${data.ip_address || 'CAPTURA_DIGITAL'}`, margin, footerY + 9);
+    
+    doc.setFontSize(7);
+    doc.text('MONITOR PRO® - Sistema de Vigilancia de Salud Ocupacional by VITACORP 360', margin, footerY + 15);
 
     return doc.output('blob');
   },

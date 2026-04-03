@@ -250,23 +250,32 @@ function BusquedaSeguimiento() {
             {/* BOTÓN CONSENTIMIENTO SI EXISTE */}
             {consentimiento && (
               <div style={{ marginTop: '10px', marginBottom: '15px' }}>
-                <a 
-                  href={consentimiento.pdf_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <button 
+                  onClick={async () => {
+                    const win = window.open(consentimiento.pdf_url, '_blank');
+                    if (win) win.focus();
+                    
+                    await auditService.record({
+                      action: 'DOWNLOAD',
+                      module: 'Consentimientos',
+                      description: `Descargó el consentimiento firmado de: ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni})`,
+                      details: { dni: trabajador.dni, pdf_url: consentimiento.pdf_url }
+                    });
+                  }}
                   className="mp-roles-primary-btn"
                   style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 
                     gap: '8px', 
                     background: '#0d9488',
-                    textDecoration: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
                     fontSize: '13px',
                     padding: '8px 14px'
                   }}
                 >
                   📄 Descargar Consentimiento Firmado
-                </a>
+                </button>
               </div>
             )}
 

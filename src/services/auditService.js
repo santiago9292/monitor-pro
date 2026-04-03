@@ -58,6 +58,10 @@ export const auditService = {
         query = query.eq('user_email', filters.user);
       }
 
+      if (filters.dni) {
+        query = query.ilike('description', `%${filters.dni}%`);
+      }
+
       if (filters.since) {
         query = query.gte('created_at', `${filters.since}T00:00:00`);
       }
@@ -72,6 +76,20 @@ export const auditService = {
     } catch (error) {
       console.error('Error fetching audit logs:', error.message);
       return [];
+    }
+  },
+
+  /**
+   * Obtiene la IP pública del cliente de forma segura.
+   */
+  async getIP() {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip || 'Unknown';
+    } catch (err) {
+      console.error('Audit: Error fetching IP address', err);
+      return '127.0.0.1'; // Localhost fallback
     }
   },
 

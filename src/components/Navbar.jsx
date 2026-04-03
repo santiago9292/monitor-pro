@@ -38,13 +38,19 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-header">
-          <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
+          <div className="navbar-brand">
             <img src={logo} className="navbar-logo" alt="Monitor Pro Logo" />
-            <div className="navbar-brand-text">
+            <a 
+              href="https://desarrolloinka.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="navbar-brand-text"
+            >
               <div className="navbar-title">MONITOR PRO®</div>
-              <div className="navbar-subtitle">Vigilancia de Salud Ocupacional</div>
-            </div>
-          </NavLink>
+              <div className="navbar-subtitle">salud ocupacional</div>
+              <div className="navbar-subtitle-powered">powered by desarrolloinka.com</div>
+            </a>
+          </div>
 
           <button className="navbar-toggle" onClick={toggleMenu} aria-label="Toggle navigation">
             <span className={`hamburger ${isOpen ? 'is-active' : ''}`}></span>
@@ -78,13 +84,9 @@ export default function Navbar() {
             {/* OPCIONES DE ADMINISTRADOR */}
             {role === 'admin' && (
               <>
-                <NavLink to="/roles" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Roles
-                </NavLink>
-
-                <NavLink to="/usuarios/crear" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Crear Usuario
-                </NavLink>
+                <NavLink to="/usuarios" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+              Usuarios
+            </NavLink>
 
                 <NavLink to="/auditoria" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
                   Auditoría

@@ -39,6 +39,36 @@ export const userService = {
   },
 
   /**
+   * Actualiza el perfil completo de un usuario.
+   */
+  async updateProfile(userId, data) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          nombres: data.nombres,
+          apellidos: data.apellidos,
+          full_name: `${data.nombres} ${data.apellidos}`,
+          email: data.email,
+          dni: data.dni,
+          is_medico: data.is_medico,
+          cmp: data.is_medico ? data.cmp : null,
+          genero: data.genero,
+          fecha_nacimiento: data.fecha_nacimiento,
+          role: data.role,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error in upsertProfile:', error.message);
+      return false;
+    }
+  },
+
+  /**
    * Actualiza el rol de un usuario.
    */
   async updateRole(userId, newRole) {

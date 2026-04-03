@@ -13,11 +13,11 @@
 .navbar-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 60px;
+  min-height: 72px;
 }
 
 .navbar-header {
@@ -44,21 +44,36 @@
 .navbar-brand-text {
   display: flex;
   flex-direction: column;
+  text-decoration: none;
+  color: inherit;
 }
 
 .navbar-title {
-  font-size: 1rem;
+  font-size: 0.85rem; /* ~13.5px */
   font-weight: 800;
   color: #1e293b;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.01em;
   margin: 0;
+  line-height: 1;
 }
 
 .navbar-subtitle {
-  font-size: 0.65rem;
+  font-size: 0.58rem; /* ~9.3px */
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  margin: 0.1rem 0 0.05rem 0;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.navbar-subtitle-powered {
+  font-size: 0.52rem; /* ~8.3px */
+  color: #3b82f6; 
+  font-weight: 700;
   margin: 0;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  text-transform: lowercase;
 }
 
 .navbar-menu {
@@ -70,6 +85,38 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.navbar-logout-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.inka-credit {
+  display: flex;
+  align-items: center;
+}
+
+.inka-credit a {
+  font-size: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s;
+  padding: 0 0.6rem;
+  margin-top: -6px;
+}
+
+.inka-credit a span {
+  color: #3b82f6;
+}
+
+.inka-credit a:hover {
+  color: #1e293b;
 }
 
 .nav-link {
@@ -1306,11 +1353,24 @@ button:disabled {
 }
 
 .mp-consent-checkbox {
-  margin-top: 15px;
+  margin-top: 20px;
   font-size: 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.mp-consent-checkbox input {
+  width: auto;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.mp-consent-checkbox label {
+  cursor: pointer;
+  user-select: none;
 }
 
 .mp-signature-box {

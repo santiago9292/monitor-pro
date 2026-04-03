@@ -15,6 +15,7 @@ import {
 import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import logoEmpresa from '../assets/logo.png'
+import { auditService } from '../services/auditService'
 import '../App.css'
 
 function Estadisticas() {
@@ -177,6 +178,13 @@ function Estadisticas() {
 
     const excelBuffer = await workbook.xlsx.writeBuffer()
     saveAs(new Blob([excelBuffer]), 'reporte_atenciones.xlsx')
+
+    // AUDITORÍA
+    auditService.record({
+      action: 'EXPORT',
+      module: 'Estadísticas',
+      description: `Exportó reporte de estadísticas a Excel. Rango: ${desde || 'Desde el origen'} - ${hasta || 'Hasta hoy'}`
+    })
   }
 
   /* =======================

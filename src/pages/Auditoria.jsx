@@ -5,11 +5,12 @@ export default function Auditoria() {
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filtros
   const [filterDesde, setFilterDesde] = useState('');
   const [filterHasta, setFilterHasta] = useState('');
   const [filterUser, setFilterUser] = useState('Todos');
+  const [filterDni, setFilterDni] = useState('');
 
   useEffect(() => {
     loadInitialData();
@@ -37,7 +38,8 @@ export default function Auditoria() {
       const filteredLogs = await auditService.getLogs({
         since: filterDesde,
         until: filterHasta,
-        user: filterUser
+        user: filterUser,
+        dni: filterDni
       });
       setLogs(filteredLogs);
     } catch (error) {
@@ -81,8 +83,8 @@ export default function Auditoria() {
       <div className="mp-audit-filters">
         <div className="mp-audit-filter-group">
           <label>Desde</label>
-          <input 
-            type="date" 
+          <input
+            type="date"
             value={filterDesde}
             onChange={(e) => setFilterDesde(e.target.value)}
           />
@@ -90,8 +92,8 @@ export default function Auditoria() {
 
         <div className="mp-audit-filter-group">
           <label>Hasta</label>
-          <input 
-            type="date" 
+          <input
+            type="date"
             value={filterHasta}
             onChange={(e) => setFilterHasta(e.target.value)}
           />
@@ -99,7 +101,7 @@ export default function Auditoria() {
 
         <div className="mp-audit-filter-group">
           <label>Usuario</label>
-          <select 
+          <select
             value={filterUser}
             onChange={(e) => setFilterUser(e.target.value)}
           >
@@ -110,7 +112,18 @@ export default function Auditoria() {
           </select>
         </div>
 
-        <button 
+        <div className="mp-audit-filter-group">
+          <label>DNI del Paciente</label>
+          <input 
+            type="text" 
+            placeholder="Buscar por DNI..."
+            value={filterDni}
+            onChange={(e) => setFilterDni(e.target.value)}
+            maxLength={8}
+          />
+        </div>
+
+        <button
           className="mp-audit-filter-btn"
           onClick={handleFilter}
           disabled={loading}

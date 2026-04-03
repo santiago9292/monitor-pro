@@ -33,7 +33,7 @@ function App() {
                   <Route path="/estadisticas" element={<Estadisticas />} />
                   <Route path="/descansos-medicos" element={<DescansosMedicos />} />
                   <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
-                  <Route path="/roles" element={<Roles />} />
+                  <Route path="/usuarios" element={<Roles />} />
                   <Route path="/auditoria" element={<Auditoria />} />
                   <Route path="/consentimiento" element={<Consentimiento />} />
                   <Route path="/usuarios/crear" element={<CrearUsuario />} />

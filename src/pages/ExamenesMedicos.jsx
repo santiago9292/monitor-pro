@@ -243,14 +243,21 @@ const emosFiltrados = emosOrdenados.filter(e => {
                 </td>
                 <td>
                   {e.archivo_url ? (
-                    <a
-                      href={e.archivo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={async () => {
+                        window.open(e.archivo_url, '_blank');
+                        await auditService.record({
+                          action: 'VIEW',
+                          module: 'Exámenes Médicos',
+                          description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                          details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
+                        });
+                      }}
                       className="btn-ver"
+                      style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
                     >
                       Ver
-                    </a>
+                    </button>
                   ) : (
                     <span className="sin-archivo">—</span>
                   )}
@@ -282,15 +289,21 @@ const emosFiltrados = emosOrdenados.filter(e => {
             </div>
 
             {e.archivo_url ? (
-              <a
-                href={e.archivo_url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={async () => {
+                  window.open(e.archivo_url, '_blank');
+                  await auditService.record({
+                    action: 'VIEW',
+                    module: 'Exámenes Médicos',
+                    description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                    details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
+                  });
+                }}
                 className="btn-ver"
-                style={{ marginTop: 8, display: "inline-block" }}
+                style={{ marginTop: 8, display: "inline-block", border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
               >
                 📄 Ver EMO
-              </a>
+              </button>
             ) : (
               <span className="sin-archivo">Sin archivo</span>
             )}

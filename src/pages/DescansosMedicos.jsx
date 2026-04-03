@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabase"
-import "../App.css"
+import { auditService } from "../services/auditService"
 import ModalDescansoMedico from "../components/ModalDescansomedico"
 
 // 🧠 Estado clínico correcto (hora local Perú)
@@ -170,13 +170,20 @@ function DescansosMedicos() {
                     </td>
                     <td>
                       {d.archivo_url ? (
-                        <a
-                          href={d.archivo_url}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={async () => {
+                            window.open(d.archivo_url, '_blank');
+                            await auditService.record({
+                              action: 'VIEW',
+                              module: 'Descansos Médicos',
+                              description: `Visualizó el descanso médico de: ${d.trabajadores?.nombres} ${d.trabajadores?.apellidos} (DNI: ${d.trabajadores?.dni})`,
+                              details: { dni: d.trabajadores?.dni, archivo_url: d.archivo_url }
+                            });
+                          }}
+                          style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: '#2563eb', textDecoration: 'underline', font: 'inherit' }}
                         >
                           Ver
-                        </a>
+                        </button>
                       ) : (
                         "-"
                       )}

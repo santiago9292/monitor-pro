@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { auditService } from '../services/auditService';
 import { consentService } from '../services/consentService';
+import { userService } from '../services/userService';
 import SignaturePad from '../components/SignaturePad';
 import CameraCapture from '../components/CameraCapture';
+import logo from '../assets/logo.png';
 
 export default function Consentimiento() {
   const [formData, setFormData] = useState({
@@ -24,21 +26,99 @@ export default function Consentimiento() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const ip = await auditService.getIP();
-      setFormData(prev => ({ 
-        ...prev, 
-        testigo_email: session?.user?.email || 'Sistema', 
-        ip_address: ip 
-      }));
+      // 1. Obtener usuario actual (testigo)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!isMounted) return;
+
+      // 2. Obtener perfil del profesional
+      let profesionalNombre = 'Profesional Monitor Pro';
+      if (user) {
+        try {
+          const profile = await userService.getProfile(user.id);
+          if (profile) {
+            // Prioridad 1: nombres + apellidos
+            if (profile.nombres && profile.apellidos) {
+              profesionalNombre = `${profile.nombres} ${profile.apellidos}`;
+            } 
+            // Prioridad 2: full_name (si nombres/apellidos están vacíos)
+            else if (profile.full_name) {
+              profesionalNombre = profile.full_name;
+            }
+            // Prioridad 3: email (último recurso)
+            else {
+              profesionalNombre = user.email;
+            }
+          } else {
+            profesionalNombre = user.email;
+          }
+        } catch (e) {
+          profesionalNombre = user.email;
+        }
+      }
+      
+      // 3. Obtener IP pública
+      let ip = '...';
+      try {
+        const fetchedIp = await auditService.getIP();
+        ip = fetchedIp || 'Localhost';
+      } catch (err) {
+        console.warn('IP fetch failed:', err);
+        ip = '127.0.0.1';
+      }
+      
+      if (isMounted) {
+        setFormData(prev => ({ 
+          ...prev, 
+          testigo_email: profesionalNombre, 
+          ip_address: ip 
+        }));
+      }
     }
     init();
+    return () => { isMounted = false; };
   }, []);
+
+  const [searching, setSearching] = useState(false);
+
+  // --- AUTO FETCH WORKER DATA ---
+  useEffect(() => {
+    async function fetchWorker() {
+      if (formData.dni.length === 8) {
+        setSearching(true);
+        try {
+          const { data, error } = await supabase
+            .from('trabajadores')
+            .select('*')
+            .eq('dni', formData.dni)
+            .maybeSingle();
+          
+          if (data) {
+            setFormData(prev => ({
+              ...prev,
+              nombre: (data.nombres || '').toUpperCase(),
+              apellidos: (data.apellidos || '').toUpperCase(),
+              empresa: (data.empresa || '').toUpperCase()
+            }));
+          }
+        } catch (err) {
+          console.error('Error fetching worker:', err);
+        } finally {
+          setSearching(false);
+        }
+      }
+    }
+    fetchWorker();
+  }, [formData.dni]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // Forzar mayúsculas en campos de texto específicos
+    const finalValue = ['nombre', 'apellidos', 'cargo', 'empresa'].includes(name) 
+      ? value.toUpperCase() 
+      : value;
+    setFormData(prev => ({ ...prev, [name]: finalValue }));
   };
 
   const isFormValid = () => {
@@ -64,8 +144,19 @@ export default function Consentimiento() {
 
     try {
       // 1. Generar el PDF Blob
-      const pdfBlob = await consentService.generatePDF(formData, signature, photo);
+      const pdfBlob = await consentService.generatePDF(formData, signature, photo, logo);
       
+      // --- AUTO DOWNLOAD PDF ---
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.id = 'download-consent-link'; 
+      link.href = url;
+      link.setAttribute('download', `Consentimiento_${formData.dni}_${formData.nombre}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      // -------------------------
+
       // 2. Convertir imágenes para Storage
       const signatureFile = consentService.base64ToFile(signature, 'signature.png', 'image/png');
       const photoFile = consentService.base64ToFile(photo, 'selfie.jpg', 'image/jpeg');
@@ -123,8 +214,20 @@ export default function Consentimiento() {
         <form onSubmit={handleSubmit}>
           {/* DATOS DEL COLABORADOR */}
           <div className="mp-consent-section">
-            <h4>1. Datos del Colaborador</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h4 style={{ margin: 0 }}>1. Datos del Colaborador</h4>
+              {searching && <span style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold' }}>🔍 Buscando...</span>}
+            </div>
             <div className="mp-consent-grid">
+              <input 
+                name="dni" 
+                placeholder="DNI" 
+                value={formData.dni} 
+                onChange={handleInputChange} 
+                maxLength={8}
+                style={{ border: searching ? '2px solid #2563eb' : '1px solid #cbd5e1' }}
+                required 
+              />
               <input 
                 name="nombre" 
                 placeholder="Nombres" 
@@ -136,13 +239,6 @@ export default function Consentimiento() {
                 name="apellidos" 
                 placeholder="Apellidos" 
                 value={formData.apellidos} 
-                onChange={handleInputChange} 
-                required 
-              />
-              <input 
-                name="dni" 
-                placeholder="DNI" 
-                value={formData.dni} 
                 onChange={handleInputChange} 
                 required 
               />
