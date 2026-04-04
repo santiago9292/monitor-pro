@@ -7,19 +7,32 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const [role, setRole] = useState(null)
+  const [mfaRequired, setMfaRequired] = useState(false)
 
   useEffect(() => {
     async function getProfile() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        const { data, error } = await supabase
+        // 1. Obtener Rol
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, password_set')
           .eq('id', session.user.id)
           .single()
         
-        if (!error && data) {
-          setRole(data.role)
+        if (!profileError && profileData) {
+          setRole(profileData.role)
+          
+          // 2. Verificar MFA si es admin o medico
+          if (['admin', 'medico'].includes(profileData.role)) {
+            const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
+            const isVerified = factors?.all?.some(f => f.status === 'verified')
+            
+            // Si es obligatorio y no está verificado, marcamos como requerido
+            if (!mfaError && !isVerified) {
+              setMfaRequired(true)
+            }
+          }
         }
       }
     }
@@ -59,44 +72,56 @@ export default function Navbar() {
 
         <div className={`navbar-menu ${isOpen ? 'is-active' : ''}`}>
           <div className="navbar-links">
-            <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Búsqueda y seguimiento
-            </NavLink>
-            
-            <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Estadísticas
-            </NavLink>
-            
-            <NavLink to="/descansos-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Descansos médicos
-            </NavLink>
-            
-            <NavLink to="/examenes-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Exámenes médicos
-            </NavLink>
-            
-            <NavLink to="/consentimiento" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Consentimiento
-            </NavLink>
-
-            <div className="nav-divider"></div>
-
-            {/* OPCIONES DE ADMINISTRADOR */}
-            {role === 'admin' && (
+            {!mfaRequired ? (
               <>
-                <NavLink to="/usuarios" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Usuarios
-            </NavLink>
+                <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Seguimiento
+                </NavLink>
+                
+                <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Estadísticas
+                </NavLink>
+                
+                <NavLink to="/descansos-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Descansos
+                </NavLink>
+                
+                <NavLink to="/examenes-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Exámenes
+                </NavLink>
+                
+                <NavLink to="/consentimiento" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Consentimiento
+                </NavLink>
 
-                <NavLink to="/auditoria" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Auditoría
+                <div className="nav-divider"></div>
+
+                {/* OPCIONES DE ADMINISTRADOR */}
+                {role === 'admin' && (
+                  <>
+                    <NavLink to="/usuarios" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Usuarios
+                </NavLink>
+
+                    <NavLink to="/auditoria" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                      Auditoría
+                    </NavLink>
+                  </>
+                )}
+
+                <NavLink to="/cambiar-password" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Contraseña
+                </NavLink>
+
+                <NavLink to="/seguridad" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Seguridad
                 </NavLink>
               </>
+            ) : (
+              <div style={{ padding: '10px', color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>
+                Acceso restringido: Configuración de seguridad pendiente
+              </div>
             )}
-
-            <NavLink to="/cambiar-password" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-              Seguridad
-            </NavLink>
 
             <button onClick={handleLogout} className="nav-link logout-btn">
               Cerrar sesión

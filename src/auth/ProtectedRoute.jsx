@@ -7,6 +7,7 @@ export default function ProtectedRoute({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [mustChangePassword, setMustChangePassword] = useState(false)
+  const [mustEnrollMFA, setMustEnrollMFA] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
@@ -30,6 +31,14 @@ export default function ProtectedRoute({ children }) {
             // Verificar si debe cambiar password
             if (userProfile.password_set === false) {
               setMustChangePassword(true)
+            }
+
+            // Verificar si debe enrolar MFA (admin y medico)
+            if (['admin', 'medico'].includes(userProfile.role)) {
+              const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
+              if (!mfaError && factors.all.filter(f => f.status === 'verified').length === 0) {
+                setMustEnrollMFA(true)
+              }
             }
           }
         }
@@ -55,6 +64,11 @@ export default function ProtectedRoute({ children }) {
 
   if (!session) {
     return <Navigate to="/login" replace />
+  }
+
+  // Obligatoriedad de MFA (para admin y medico)
+  if (mustEnrollMFA && location.pathname !== "/seguridad") {
+    return <Navigate to="/seguridad" replace />
   }
 
   // Obligar a cambio de password

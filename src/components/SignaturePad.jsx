@@ -82,7 +82,7 @@ export default function SignaturePad({ onSave, onClear }) {
   };
 
   return (
-    <div className="mp-signature-container" style={{ position: 'relative', width: '100%', height: '200px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'crosshair' }}>
+    <div className="mp-signature-container" style={{ position: 'relative', width: '100%', height: '200px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'crosshair', touchAction: 'none' }}>
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
@@ -92,7 +92,7 @@ export default function SignaturePad({ onSave, onClear }) {
         onTouchStart={startDrawing}
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
-        style={{ width: '100%', height: '100%', display: 'block' }}
+        style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
       />
       
       <button 

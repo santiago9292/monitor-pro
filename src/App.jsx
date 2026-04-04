@@ -12,6 +12,7 @@ import Roles from "./pages/Roles.jsx"
 import Auditoria from "./pages/Auditoria.jsx"
 import Login from "./pages/Login.jsx"
 import Consentimiento from "./pages/Consentimiento.jsx"
+import Seguridad from "./pages/Seguridad.jsx"
 
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
                   <Route path="/usuarios" element={<Roles />} />
                   <Route path="/auditoria" element={<Auditoria />} />
                   <Route path="/consentimiento" element={<Consentimiento />} />
+                  <Route path="/seguridad" element={<Seguridad />} />
                   <Route path="/usuarios/crear" element={<CrearUsuario />} />
                   <Route path="/cambiar-password" element={<CambiarPassword />} />
                 </Routes>
