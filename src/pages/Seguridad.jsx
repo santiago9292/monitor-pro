@@ -122,7 +122,7 @@ export default function Seguridad() {
     }
   }
 
-  const isMandatory = ['admin', 'medico'].includes(userRole)
+  const isMandatory = false // ['admin', 'medico'].includes(userRole) // DESACTIVADO TEMPORALMENTE
 
   return (
     <div className="card" style={{ maxWidth: '600px', margin: '40px auto' }}>

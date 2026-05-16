@@ -145,14 +145,31 @@ export const consentService = {
     doc.setDrawColor(241, 245, 249);
     doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
 
-    doc.text(`Este documento fue presenciado y validado electrónicamente por:`, margin, footerY);
+    const deviceInfo = (() => {
+      const ua = navigator.userAgent;
+      if (/android/i.test(ua)) return 'Dispositivo Android';
+      if (/iPad|iPhone|iPod/.test(ua)) return 'Dispositivo iOS';
+      if (/Windows/.test(ua)) return 'PC Windows';
+      if (/Mac OS/.test(ua)) return 'Mac';
+      return 'Dispositivo Web';
+    })();
+    const dateTime = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });
+
+    doc.text(`Este consentimiento fue solicitado por:`, margin, footerY);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
-    doc.text(data.testigo_email, margin, footerY + 4.5);
-    
+    doc.text(data.testigo_email, margin + 50, footerY);
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text(`IP de Registro: ${data.ip_address || 'CAPTURA_DIGITAL'}`, margin, footerY + 9);
+    doc.text(`Firmado electrónicamente por:`, margin, footerY + 4.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${(data.nombre || '').toUpperCase()} ${(data.apellidos || '').toUpperCase()}`, margin + 41, footerY + 4.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Desde: ${deviceInfo} - Fecha y hora: ${dateTime}`, margin, footerY + 9);
     
     doc.setFontSize(7);
     doc.text('MONITOR PRO® - Sistema de Vigilancia de Salud Ocupacional by VITACORP 360', margin, footerY + 15);
@@ -231,5 +248,51 @@ export const consentService = {
     
     if (error) return null;
     return data;
+  },
+
+  /**
+   * Crea un enlace único para consentimiento remoto
+   */
+  async createConsentLink(dni, workerName, testigoEmail, phone) {
+    const { data, error } = await supabase
+      .from('consent_links')
+      .insert({
+        dni,
+        worker_name: workerName,
+        testigo_email: testigoEmail,
+        phone
+      })
+      .select('id')
+      .single();
+      
+    if (error) throw error;
+    return data.id;
+  },
+
+  /**
+   * Obtiene los datos de un enlace de consentimiento
+   */
+  async getConsentLink(id) {
+    const { data, error } = await supabase
+      .from('consent_links')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Marca un enlace como firmado
+   */
+  async markLinkAsSigned(id, pdfUrl) {
+    const { error } = await supabase
+      .from('consent_links')
+      .update({ signed: true, pdf_url: pdfUrl })
+      .eq('id', id);
+      
+    if (error) throw error;
+    return true;
   }
 };

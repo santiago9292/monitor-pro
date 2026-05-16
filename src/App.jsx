@@ -11,7 +11,8 @@ import ExamenesMedicos from "./pages/ExamenesMedicos.jsx"
 import Roles from "./pages/Roles.jsx"
 import Auditoria from "./pages/Auditoria.jsx"
 import Login from "./pages/Login.jsx"
-import Consentimiento from "./pages/Consentimiento.jsx"
+import SendConsent from "./pages/SendConsent.jsx"
+import PublicConsent from "./pages/PublicConsent.jsx"
 import Seguridad from "./pages/Seguridad.jsx"
 
 
@@ -21,6 +22,9 @@ function App() {
       <Routes>
         {/* LOGIN SIN PROTECCIÓN */}
         <Route path="/login" element={<Login />} />
+
+        {/* RUTAS PÚBLICAS (CONSENTIMIENTO) */}
+        <Route path="/firmar/:id" element={<PublicConsent />} />
 
         {/* TODO EL SISTEMA PROTEGIDO */}
         <Route
@@ -36,7 +40,7 @@ function App() {
                   <Route path="/examenes-medicos" element={<ExamenesMedicos />} />
                   <Route path="/usuarios" element={<Roles />} />
                   <Route path="/auditoria" element={<Auditoria />} />
-                  <Route path="/consentimiento" element={<Consentimiento />} />
+                  <Route path="/consentimiento" element={<SendConsent />} />
                   <Route path="/seguridad" element={<Seguridad />} />
                   <Route path="/usuarios/crear" element={<CrearUsuario />} />
                   <Route path="/cambiar-password" element={<CambiarPassword />} />

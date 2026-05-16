@@ -9,13 +9,18 @@ export const auditService = {
    * @param {string} params.description - Descripción detallada del evento.
    * @param {Object} [params.details] - Datos adicionales en formato JSON.
    */
-  async record({ action, module, description, details = null }) {
+  async record({ action, module, description, details = null, overrideUser = null }) {
     try {
-      // 1. Obtener usuario actual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn('Audit: Intent to record without an authenticated user.');
-        return;
+      // 1. Obtener usuario actual o usar el override
+      let userEmail = overrideUser;
+      
+      if (!userEmail) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.warn('Audit: Intent to record without an authenticated user.');
+          return;
+        }
+        userEmail = user.email;
       }
 
       // 2. Obtener IP pública (usando servicio externo de forma segura)
@@ -30,7 +35,7 @@ export const auditService = {
 
       // 3. Insertar en la tabla audit_logs
       const { error } = await supabase.from('audit_logs').insert({
-        user_email: user.email,
+        user_email: userEmail,
         action,
         module,
         description,

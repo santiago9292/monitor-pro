@@ -23,8 +23,8 @@ export default function Navbar() {
         if (!profileError && profileData) {
           setRole(profileData.role)
           
-          // 2. Verificar MFA si es admin o medico
-          if (['admin', 'medico'].includes(profileData.role)) {
+          // 2. Verificar MFA si es admin o medico - DESACTIVADO TEMPORALMENTE
+          if (false && ['admin', 'medico'].includes(profileData.role)) {
             const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
             const isVerified = factors?.all?.some(f => f.status === 'verified')
             

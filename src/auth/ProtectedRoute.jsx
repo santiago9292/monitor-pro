@@ -33,8 +33,8 @@ export default function ProtectedRoute({ children }) {
               setMustChangePassword(true)
             }
 
-            // Verificar si debe enrolar MFA (admin y medico)
-            if (['admin', 'medico'].includes(userProfile.role)) {
+            // Verificar si debe enrolar MFA (admin y medico) - DESACTIVADO TEMPORALMENTE
+            if (false && ['admin', 'medico'].includes(userProfile.role)) {
               const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
               if (!mfaError && factors.all.filter(f => f.status === 'verified').length === 0) {
                 setMustEnrollMFA(true)
