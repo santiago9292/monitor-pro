@@ -93,28 +93,38 @@ function Estadisticas() {
   }
 
   const cargarKpisAdicionales = async () => {
-    // Descansos Activos
     const today = new Date().toISOString().split('T')[0]
-    const { count: descansos } = await supabase
-      .from('descansos_medicos')
-      .select('*', { count: 'exact', head: true })
-      .gte('fecha_fin', today)
 
-    // EMOs Vencidos
-    const { count: emos } = await supabase
+    // Descansos Activos (excluyendo trabajadores de baja)
+    const { data: descansosData, error: dmError } = await supabase
+      .from('descansos_medicos')
+      .select('id, trabajadores!inner(empresa)')
+      .gte('fecha_fin', today)
+      .not('trabajadores.empresa', 'ilike', '%DE BAJA%')
+
+    const descansos = dmError || !descansosData ? 0 : descansosData.length
+
+    // EMOs Vencidos (excluyendo trabajadores de baja)
+    const { data: emosData, error: emosError } = await supabase
       .from('emos')
-      .select('*', { count: 'exact', head: true })
-      .lt('proximo_emo', today)
+      .select('id, trabajadores!inner(empresa)')
+      .lt('fecha_vencimiento', today)
+      .not('trabajadores.empresa', 'ilike', '%DE BAJA%')
+
+    const emos = emosError || !emosData ? 0 : emosData.length
 
     setKpis(prev => ({
       ...prev,
-      descansosActivos: descansos || 0,
-      emosVencidos: emos || 0
+      descansosActivos: descansos,
+      emosVencidos: emos
     }))
   }
 
   const exportarExcel = async () => {
-    let query = supabase.from('registros_medicos').select('fecha, sintomas, recomendaciones, cie, trabajadores(dni, nombres, apellidos, sexo, fecha_nacimiento)')
+    let query = supabase
+      .from('registros_medicos')
+      .select('fecha, sintomas, recomendaciones, cie, trabajadores(dni, nombres, apellidos, sexo, fecha_nacimiento)')
+
     if (desde) query = query.gte('fecha', desde)
     if (hasta) query = query.lte('fecha', hasta + 'T23:59:59')
     const { data } = await query

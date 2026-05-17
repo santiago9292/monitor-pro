@@ -9,11 +9,33 @@ import logo from "../assets/logo.png"
 import ExcelJS from "exceljs"
 import { auditService } from "../services/auditService"
 
+const formatResultado = (res) => {
+  if (!res) return "—"
+  const mapped = {
+    apto: "Apto",
+    apto_con_restricciones: "Apto con restricciones",
+    no_apto: "No apto",
+    observado: "Observado"
+  }
+  return mapped[res] || res.charAt(0).toUpperCase() + res.slice(1)
+}
+
 export default function ExamenesMedicos() {
   const [emos, setEmos] = useState([])
   const [openModal, setOpenModal] = useState(false)
-const [busqueda, setBusqueda] = useState("")
-const [filtroEstado, setFiltroEstado] = useState("todos")
+  const [emoParaEditar, setEmoParaEditar] = useState(null)
+  const [busqueda, setBusqueda] = useState("")
+  const [filtroEstado, setFiltroEstado] = useState("todos")
+
+  const handleAbrirEdicionObservado = (emo) => {
+    setEmoParaEditar(emo)
+    setOpenModal(true)
+  }
+
+  const handleCerrarModal = () => {
+    setOpenModal(false)
+    setEmoParaEditar(null)
+  }
 const exportarExcel = async () => {
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet("EMO")
@@ -48,37 +70,47 @@ const exportarExcel = async () => {
   sheet.getCell("C2").font = { size: 12 }
 
   /* ===============================
-     📊 CABECERA TABLA
+     📊 CABECERA TABLA (fila 5)
   =============================== */
+  // Definir columnas sin header automático (para controlar su posición)
   sheet.columns = [
-    { header: "DNI", key: "dni", width: 15 },
-    { header: "Trabajador", key: "trabajador", width: 32 },
-    { header: "Tipo EMO", key: "tipo", width: 15 },
-    { header: "Resultado", key: "resultado", width: 22 },
-    { header: "Fecha Vencimiento", key: "vencimiento", width: 18 },
-    { header: "Estado", key: "estado", width: 15 },
-    { header: "Archivo EMO", key: "archivo", width: 40 }
+    { key: "dni",       width: 15 },
+    { key: "trabajador",width: 32 },
+    { key: "tipo",      width: 15 },
+    { key: "resultado", width: 22 },
+    { key: "vencimiento",width: 18 },
+    { key: "estado",    width: 15 },
+    { key: "archivo",   width: 40 },
+    { key: "legajo",    width: 40 },
+    { key: "informe",   width: 40 }
   ]
 
-  // Cabecera en fila 5
+  // Escribir cabeceras manualmente en fila 5
+  const headers = ["DNI", "Trabajador", "Tipo EMO", "Resultado", "Fecha Vencimiento", "Estado", "Archivo EMO", "Legajo Completo", "Informe Médico"]
   const headerRow = sheet.getRow(5)
+  headers.forEach((h, i) => {
+    headerRow.getCell(i + 1).value = h
+  })
   headerRow.font = { bold: true }
   headerRow.alignment = { vertical: "middle", horizontal: "center" }
+  headerRow.commit()
 
   /* ===============================
-     📥 DATOS
+     📥 DATOS (desde fila 6)
   =============================== */
   emosFiltrados.forEach(e => {
     sheet.addRow({
       dni: e.trabajadores?.dni || "",
       trabajador: e.trabajadores
-        ? `${e.trabajadores.nombres} ${e.trabajadores.apellidos}`
+        ? `${e.trabajadores.nombres} ${e.trabajadores.apellidos}`.toUpperCase()
         : "",
       tipo: e.tipo,
-      resultado: e.resultado,
+      resultado: formatResultado(e.resultado),
       vencimiento: e.fecha_vencimiento,
       estado: calcularEstadoEMO(e.fecha_vencimiento),
-      archivo: e.archivo_url || ""
+      archivo: e.archivo_url || "",
+      legajo: e.legajo_url || "",
+      informe: e.informe_medico_url || ""
     })
   })
 
@@ -126,12 +158,18 @@ const exportarExcel = async () => {
         id,
         tipo,
         resultado,
+        fecha_examen,
         fecha_vencimiento,
+        entidad_medica,
+        observaciones,
         archivo_url,
+        legajo_url,
+        informe_medico_url,
         trabajadores (
           dni,
           nombres,
-          apellidos
+          apellidos,
+          empresa
         )
       `)
       .order("fecha_vencimiento", { ascending: true })
@@ -224,22 +262,41 @@ const emosFiltrados = emosOrdenados.filter(e => {
               <th>Vence</th>
               <th>Estado</th>
               <th>EMO</th>
+              <th>Legajo</th>
+              <th>Informe Médico</th>
             </tr>
           </thead>
           <tbody>
             {emosFiltrados.map(e => (
               <tr key={e.id}>
                 <td>{e.trabajadores?.dni}</td>
+                <td style={{ fontWeight: 600, color: "#1e293b" }}>
+                  {e.trabajadores
+                    ? `${e.trabajadores.nombres} ${e.trabajadores.apellidos}`.toUpperCase()
+                    : "—"}
+                </td>
+                <td style={{ textTransform: "capitalize" }}>{e.tipo}</td>
                 <td>
-  {e.trabajadores
-    ? `${e.trabajadores.nombres} ${e.trabajadores.apellidos}`
-    : "—"}
-</td>
-                <td>{e.tipo}</td>
-                <td>{e.resultado}</td>
+                  {e.resultado === "observado" ? (
+                    <button
+                      onClick={() => handleAbrirEdicionObservado(e)}
+                      className="badge-resultado observado"
+                      title="Haga click para levantar observación"
+                      style={{ border: "1px solid #c7d2fe", font: "inherit" }}
+                    >
+                      ✏️ Observado
+                    </button>
+                  ) : (
+                    <span className={`badge-resultado ${e.resultado}`}>
+                      {formatResultado(e.resultado)}
+                    </span>
+                  )}
+                </td>
                 <td>{e.fecha_vencimiento}</td>
-                <td className={`estado ${calcularEstadoEMO(e.fecha_vencimiento)}`}>
-                  {calcularEstadoEMO(e.fecha_vencimiento)}
+                <td>
+                  <span className={`badge-estado ${calcularEstadoEMO(e.fecha_vencimiento).replace(" ", "-")}`}>
+                    {calcularEstadoEMO(e.fecha_vencimiento)}
+                  </span>
                 </td>
                 <td>
                   {e.archivo_url ? (
@@ -251,6 +308,48 @@ const emosFiltrados = emosOrdenados.filter(e => {
                           module: 'Exámenes Médicos',
                           description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                           details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
+                        });
+                      }}
+                      className="btn-ver"
+                      style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
+                    >
+                      Ver
+                    </button>
+                  ) : (
+                    <span className="sin-archivo">—</span>
+                  )}
+                </td>
+                <td>
+                  {e.legajo_url ? (
+                    <button
+                      onClick={async () => {
+                        window.open(e.legajo_url, '_blank');
+                        await auditService.record({
+                          action: 'VIEW',
+                          module: 'Exámenes Médicos',
+                          description: `Visualizó el Legajo Completo de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                          details: { dni: e.trabajadores?.dni, legajo_url: e.legajo_url }
+                        });
+                      }}
+                      className="btn-ver"
+                      style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
+                    >
+                      Ver
+                    </button>
+                  ) : (
+                    <span className="sin-archivo">—</span>
+                  )}
+                </td>
+                <td>
+                  {e.informe_medico_url ? (
+                    <button
+                      onClick={async () => {
+                        window.open(e.informe_medico_url, '_blank');
+                        await auditService.record({
+                          action: 'VIEW',
+                          module: 'Exámenes Médicos',
+                          description: `Visualizó el Informe Médico de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                          details: { dni: e.trabajadores?.dni, informe_medico_url: e.informe_medico_url }
                         });
                       }}
                       className="btn-ver"
@@ -276,37 +375,79 @@ const emosFiltrados = emosOrdenados.filter(e => {
             <div>
   <strong>Trabajador:</strong>{" "}
   {e.trabajadores
-    ? `${e.trabajadores.nombres} ${e.trabajadores.apellidos}`
+    ? `${e.trabajadores.nombres} ${e.trabajadores.apellidos}`.toUpperCase()
     : "—"}
 </div>
 
             <div><strong>Tipo:</strong> {e.tipo}</div>
-            <div><strong>Resultado:</strong> {e.resultado}</div>
+            <div><strong>Resultado:</strong> {formatResultado(e.resultado)}</div>
             <div><strong>Vence:</strong> {e.fecha_vencimiento}</div>
 
             <div className={`estado ${calcularEstadoEMO(e.fecha_vencimiento)}`}>
               {calcularEstadoEMO(e.fecha_vencimiento).toUpperCase()}
             </div>
 
-            {e.archivo_url ? (
-              <button
-                onClick={async () => {
-                  window.open(e.archivo_url, '_blank');
-                  await auditService.record({
-                    action: 'VIEW',
-                    module: 'Exámenes Médicos',
-                    description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
-                    details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
-                  });
-                }}
-                className="btn-ver"
-                style={{ marginTop: 8, display: "inline-block", border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
-              >
-                📄 Ver EMO
-              </button>
-            ) : (
-              <span className="sin-archivo">Sin archivo</span>
-            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: '8px' }}>
+              {e.archivo_url ? (
+                <button
+                  onClick={async () => {
+                    window.open(e.archivo_url, '_blank');
+                    await auditService.record({
+                      action: 'VIEW',
+                      module: 'Exámenes Médicos',
+                      description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                      details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
+                    });
+                  }}
+                  className="btn-ver"
+                  style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
+                >
+                  📄 Ver EMO
+                </button>
+              ) : (
+                <span className="sin-archivo">Sin EMO</span>
+              )}
+
+              {e.legajo_url ? (
+                <button
+                  onClick={async () => {
+                    window.open(e.legajo_url, '_blank');
+                    await auditService.record({
+                      action: 'VIEW',
+                      module: 'Exámenes Médicos',
+                      description: `Visualizó el Legajo Completo de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                      details: { dni: e.trabajadores?.dni, legajo_url: e.legajo_url }
+                    });
+                  }}
+                  className="btn-ver"
+                  style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
+                >
+                  📁 Ver Legajo
+                </button>
+              ) : (
+                <span className="sin-archivo">Sin Legajo</span>
+              )}
+
+              {e.informe_medico_url ? (
+                <button
+                  onClick={async () => {
+                    window.open(e.informe_medico_url, '_blank');
+                    await auditService.record({
+                      action: 'VIEW',
+                      module: 'Exámenes Médicos',
+                      description: `Visualizó el Informe Médico de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
+                      details: { dni: e.trabajadores?.dni, informe_medico_url: e.informe_medico_url }
+                    });
+                  }}
+                  className="btn-ver"
+                  style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
+                >
+                  📋 Ver Informe
+                </button>
+              ) : (
+                <span className="sin-archivo">Sin Informe</span>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -315,8 +456,12 @@ const emosFiltrados = emosOrdenados.filter(e => {
       {openModal && (
         <ModalRegistroEMO
           abierto={openModal}
-          onClose={() => setOpenModal(false)}
-          onGuardado={fetchEmos}
+          onClose={handleCerrarModal}
+          onGuardado={() => {
+            fetchEmos()
+            handleCerrarModal()
+          }}
+          emoParaEditar={emoParaEditar}
         />
       )}
     </div>

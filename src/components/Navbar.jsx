@@ -75,23 +75,23 @@ export default function Navbar() {
             {!mfaRequired ? (
               <>
                 <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Seguimiento
-                </NavLink>
-                
-                <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Estadísticas
-                </NavLink>
-                
-                <NavLink to="/descansos-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Descansos
-                </NavLink>
-                
-                <NavLink to="/examenes-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
-                  Exámenes
+                  Atenciones
                 </NavLink>
                 
                 <NavLink to="/consentimiento" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
                   Consentimiento
+                </NavLink>
+                
+                <NavLink to="/examenes-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  EMOS
+                </NavLink>
+                
+                <NavLink to="/descansos-medicos" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Descansos médicos
+                </NavLink>
+                
+                <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} onClick={closeMenu}>
+                  Estadísticas
                 </NavLink>
 
                 <div className="nav-divider"></div>

@@ -41,7 +41,8 @@ function DescansosMedicos() {
         trabajadores (
           nombres,
           apellidos,
-          dni
+          dni,
+          empresa
         )
       `)
       .order("fecha_inicio", { ascending: false })

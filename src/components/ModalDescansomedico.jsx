@@ -25,8 +25,8 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
 
   const [guardando, setGuardando] = useState(false)
   const [guardadoOk, setGuardadoOk] = useState(false)
-
   const [mostrarRegistroTrabajador, setMostrarRegistroTrabajador] = useState(false)
+  const [tieneConsentimiento, setTieneConsentimiento] = useState(true)
 
   /* 🔁 Limpia formulario */
   const limpiarFormulario = () => {
@@ -41,6 +41,7 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
     setObservaciones("")
     setArchivo(null)
     setMostrarRegistroTrabajador(false)
+    setTieneConsentimiento(true)
   }
 
   /* 🎯 Autofocus */
@@ -65,16 +66,32 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
 
     const { data } = await supabase
       .from("trabajadores")
-      .select("id, nombres, apellidos, dni")
+      .select("id, nombres, apellidos, dni, empresa")
       .eq("dni", dni)
       .maybeSingle()
 
     if (!data) {
       setTrabajador(null)
       setMostrarRegistroTrabajador(true)
+      setTieneConsentimiento(true)
     } else {
       setTrabajador(data)
       setMostrarRegistroTrabajador(false)
+
+      // Verificar si está de baja
+      if (data.empresa?.endsWith(' (DE BAJA)')) {
+        setBuscando(false)
+        return // Detenemos aquí, el banner lo muestra el render
+      }
+
+      // Consultar si tiene consentimiento firmado
+      const { data: consentData } = await supabase
+        .from("consentimientos")
+        .select("id")
+        .eq("dni", data.dni)
+        .maybeSingle()
+      
+      setTieneConsentimiento(!!consentData)
     }
 
     setBuscando(false)
@@ -102,6 +119,11 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
   const guardarDescanso = async () => {
     if (!trabajador) {
       alert("Debe buscar y seleccionar un trabajador")
+      return
+    }
+
+    if (!tieneConsentimiento) {
+      alert("No se puede registrar descanso médico: El trabajador no cuenta con un consentimiento firmado.")
       return
     }
 
@@ -238,16 +260,28 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
 
           {trabajador && (
             <>
-              <p><strong>{trabajador.nombres} {trabajador.apellidos}</strong></p>
+              {/* Banner: Trabajador dado de baja */}
+              {trabajador.empresa?.endsWith(' (DE BAJA)') ? (
+                <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', color: '#991b1b', fontSize: '13px', fontWeight: 600 }}>
+                  🔴 TRABAJADOR DADO DE BAJA. No se pueden registrar nuevos descansos médicos.
+                </div>
+              ) : (
+                <>
+                  {!tieneConsentimiento && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', color: '#991b1b', fontSize: '13px', fontWeight: 600 }}>
+                      ⚠️ TRABAJADOR SIN CONSENTIMIENTO INFORMADO FIRMADO. Para registrar descansos médicos, primero debe generar y firmar el consentimiento de este trabajador en la pestaña de "Consentimiento".
+                    </div>
+                  )}
+                  <p><strong>{trabajador.nombres} {trabajador.apellidos}</strong></p>
 
               <label>Fecha inicio</label>
-              <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+              <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} disabled={!tieneConsentimiento} />
 
               <label>Fecha fin</label>
-              <input type="date" value={fechaFin} min={fechaInicio} onChange={e => setFechaFin(e.target.value)} />
+              <input type="date" value={fechaFin} min={fechaInicio} onChange={e => setFechaFin(e.target.value)} disabled={!tieneConsentimiento} />
 
               <label>Tipo</label>
-              <select value={tipo} onChange={e => setTipo(e.target.value)}>
+              <select value={tipo} onChange={e => setTipo(e.target.value)} disabled={!tieneConsentimiento}>
                 <option value="comun">Común</option>
                 <option value="ocupacional">Ocupacional</option>
                 <option value="accidente">Accidente</option>
@@ -259,6 +293,7 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
                   value={cieBusqueda}
                   onChange={e => buscarCie(e.target.value)}
                   placeholder="Buscar por descripción"
+                  disabled={!tieneConsentimiento}
                 />
                 {cieResultados.length > 0 && (
                   <ul className="cie-lista">
@@ -280,16 +315,18 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
               </div>
 
               <label>Observaciones</label>
-              <textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} />
+              <textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} disabled={!tieneConsentimiento} />
 
               <label>Adjuntar archivo</label>
-              <input type="file" accept="image/*,.pdf" onChange={e => setArchivo(e.target.files[0])} />
+              <input type="file" accept="image/*,.pdf" onChange={e => setArchivo(e.target.files[0])} disabled={!tieneConsentimiento} />
+                </>
+              )}
             </>
           )}
 
           <div className="modal-actions">
             <button onClick={onClose}>Cancelar</button>
-            <button onClick={guardarDescanso} disabled={guardando || !trabajador}>
+            <button onClick={guardarDescanso} disabled={guardando || !trabajador || !tieneConsentimiento || trabajador?.empresa?.endsWith(' (DE BAJA)')}>
               {guardando ? "Guardando..." : "Guardar"}
             </button>
           </div>

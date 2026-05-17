@@ -751,19 +751,121 @@ button:disabled {
   margin-bottom: 16px;
 }
 
+/* ===== MODERN COMPACT EMO TABLE ===== */
 .emo-table-wrapper {
   overflow-x: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  margin-top: 16px;
 }
 
 .emo-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
+  color: #334155;
+  text-align: left;
 }
 
-.emo-table th,
+.emo-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  padding: 10px 14px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
 .emo-table td {
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.emo-table tr:last-child td {
+  border-bottom: none;
+}
+
+.emo-table tr {
+  transition: background-color 0.15s ease;
+}
+
+.emo-table tr:hover {
+  background-color: #f8fafc;
+}
+
+/* 🏷️ Badges de Resultado */
+.badge-resultado {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.badge-resultado.apto {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.badge-resultado.apto_con_restricciones {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.badge-resultado.no_apto {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.badge-resultado.observado {
+  color: #4f46e5;
+  background: #e0e7ff;
+  border: 1px solid #c7d2fe;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.badge-resultado.observado:hover {
+  background: #c7d2fe;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(79, 70, 229, 0.15);
+}
+
+/* 🟢 Badges de Estado */
+.badge-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.badge-estado.vigente {
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-estado.por-vencer {
+  color: #d97706;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+}
+
+.badge-estado.caducado {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
 }
 
 .emo-cards {
@@ -781,18 +883,6 @@ button:disabled {
 .estado {
   margin-top: 8px;
   font-weight: bold;
-}
-
-.estado.vigente {
-  color: green;
-}
-
-.estado.vencido {
-  color: red;
-}
-
-.estado.pendiente {
-  color: orange;
 }
 
 /* ===== MOBILE ===== */

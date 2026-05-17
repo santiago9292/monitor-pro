@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
 import { QRCodeSVG } from "qrcode.react"
+import { auditService } from "../services/auditService"
 
 export default function Seguridad() {
   const [mfaEnabled, setMfaEnabled] = useState(false)
@@ -85,6 +86,19 @@ export default function Seguridad() {
 
       if (verifyError) throw verifyError
 
+      // AUDITORÍA: Registro de activación de MFA
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        await auditService.record({
+          action: 'UPDATE',
+          module: 'Seguridad',
+          description: `Activó el doble factor de autenticación (MFA) para su cuenta.`,
+          details: { user_id: user?.id, factor_id: enrollData.id }
+        })
+      } catch (auditErr) {
+        console.error("Error al registrar auditoría de MFA:", auditErr)
+      }
+
       setSuccess("¡Doble factor (MFA) activado correctamente! Redirigiendo...")
       setMfaEnabled(true)
       setEnrollData(null)
@@ -112,6 +126,20 @@ export default function Seguridad() {
       if (factorId) {
         const { error } = await supabase.auth.mfa.unenroll({ factorId })
         if (error) throw error
+
+        // AUDITORÍA: Registro de desactivación de MFA
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          await auditService.record({
+            action: 'UPDATE',
+            module: 'Seguridad',
+            description: `Desactivó el doble factor de autenticación (MFA) de su cuenta.`,
+            details: { user_id: user?.id, factor_id: factorId }
+          })
+        } catch (auditErr) {
+          console.error("Error al registrar auditoría de MFA:", auditErr)
+        }
+
         setMfaEnabled(false)
         setSuccess("MFA desactivado correctamente.")
       }

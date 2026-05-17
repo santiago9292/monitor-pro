@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
+import { auditService } from "../services/auditService"
 
 
 export default function CambiarPassword() {
@@ -62,6 +63,18 @@ const handleCambiarPassword = async (e) => {
       console.warn("No se pudo actualizar la tabla profiles (puede que no exista el esquema):", profileError)
       // Continuamos porque la contraseña ya se actualizó en el servidor de auth
     }
+  }
+
+  // 4️⃣ REGISTRO DE AUDITORÍA
+  try {
+    await auditService.record({
+      action: 'UPDATE',
+      module: 'Seguridad',
+      description: `El usuario actualizó su contraseña con éxito.`,
+      details: { user_id: user?.id }
+    });
+  } catch (auditErr) {
+    console.error("Error al registrar auditoría de cambio de contraseña:", auditErr)
   }
 
   setMensaje("Contraseña actualizada correctamente. Redirigiendo...")
