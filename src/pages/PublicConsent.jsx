@@ -30,6 +30,7 @@ export default function PublicConsent() {
   const [error, setError] = useState(null);
   const [invalidLink, setInvalidLink] = useState(false);
   const [alreadySigned, setAlreadySigned] = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,6 +48,18 @@ export default function PublicConsent() {
         if (!data) {
           setInvalidLink(true);
           return;
+        }
+
+        // Verificar expiración (15 minutos)
+        if (data.created_at) {
+          const createdTime = new Date(data.created_at).getTime();
+          const currentTime = new Date().getTime();
+          const diffInMinutes = (currentTime - createdTime) / (1000 * 60);
+          
+          if (diffInMinutes > 15 && !data.signed) {
+            setLinkExpired(true);
+            return;
+          }
         }
 
         if (data.signed) {
@@ -152,11 +165,27 @@ export default function PublicConsent() {
   if (invalidLink) {
     return (
       <div className="mp-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc' }}>
-        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '60px', maxWidth: '500px' }}>
+        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '50px 40px', maxWidth: '450px' }}>
+          <img src={logo} alt="Vitacorp Logo" style={{ height: '50px', marginBottom: '30px' }} />
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>❌</div>
           <h2 style={{ color: '#ef4444', marginBottom: '10px' }}>Enlace Inválido</h2>
-          <p style={{ color: '#475569', marginBottom: '30px' }}>
+          <p style={{ color: '#475569', marginBottom: '10px' }}>
             Este enlace de consentimiento no es válido o no existe. Por favor, solicite un nuevo enlace al administrador.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (linkExpired) {
+    return (
+      <div className="mp-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc' }}>
+        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '50px 40px', maxWidth: '450px' }}>
+          <img src={logo} alt="Vitacorp Logo" style={{ height: '50px', marginBottom: '30px' }} />
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>⏳</div>
+          <h2 style={{ color: '#f59e0b', marginBottom: '10px' }}>Enlace Expirado</h2>
+          <p style={{ color: '#475569', marginBottom: '10px' }}>
+            Por motivos de seguridad, los enlaces de firma tienen una validez de 15 minutos. Este enlace ha caducado. Por favor, solicite al administrador que le envíe uno nuevo.
           </p>
         </div>
       </div>
@@ -166,20 +195,13 @@ export default function PublicConsent() {
   if (alreadySigned) {
     return (
       <div className="mp-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc' }}>
-        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '60px', maxWidth: '500px' }}>
+        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '50px 40px', maxWidth: '450px' }}>
+          <img src={logo} alt="Vitacorp Logo" style={{ height: '50px', marginBottom: '30px' }} />
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔒</div>
           <h2 style={{ color: '#0f172a', marginBottom: '10px' }}>Documento ya firmado</h2>
-          <p style={{ color: '#475569', marginBottom: '30px' }}>
+          <p style={{ color: '#475569', marginBottom: '10px' }}>
             Este consentimiento ya ha sido completado y firmado correctamente.
           </p>
-          {linkData?.pdf_url && (
-            <button 
-              className="mp-roles-primary-btn"
-              onClick={() => window.open(linkData.pdf_url, '_blank')}
-            >
-              📄 Ver mi documento firmado
-            </button>
-          )}
         </div>
       </div>
     );
@@ -188,10 +210,11 @@ export default function PublicConsent() {
   if (success) {
     return (
       <div className="mp-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
-        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '60px', maxWidth: '600px' }}>
+        <div className="mp-consent-container" style={{ textAlign: 'center', padding: '50px 40px', maxWidth: '450px' }}>
+          <img src={logo} alt="Vitacorp Logo" style={{ height: '50px', marginBottom: '30px' }} />
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>✔️</div>
           <h2 style={{ color: '#16a34a', marginBottom: '10px' }}>¡Consentimiento Registrado!</h2>
-          <p style={{ color: '#475569', marginBottom: '30px' }}>
+          <p style={{ color: '#475569', marginBottom: '10px' }}>
             El documento ha sido firmado, validado y guardado correctamente de forma segura. Ya puede cerrar esta página.
           </p>
         </div>
