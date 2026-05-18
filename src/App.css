@@ -216,6 +216,7 @@
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 20px;
+  align-items: start; /* Allows sticky child to work */
 }
 
 @media (max-width: 900px) {
@@ -631,20 +632,606 @@ button:disabled {
   border-radius: 10px;
 }
 
-.historial-cie {
-  font-weight: 700;
+/* Card clickeable con hover */
+.historial-card--clickable {
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.historial-card--clickable:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  transform: translateY(-1px);
+}
+.historial-card--clickable:active {
+  transform: translateY(0);
+}
+
+/* Fila superior: CIE + badge de seguimientos */
+.historial-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
-/* ================= CARD BUSQUEDA DNI ================= */
-.card-busqueda {
-  min-height: 230px;
-  max-height: 230px;   /* 🔒 clave */
+
+.historial-cie {
+  font-weight: 700;
+}
+
+/* Badge de conteo de evoluciones */
+.historial-evol-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* ================= MODAL EVOLUCIÓN ================= */
+.modal-evolucion {
+  background: white;
+  width: 740px;
+  max-width: 96vw;
+  max-height: 88vh;
+  border-radius: 16px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.22);
+  animation: modalFadeIn 0.22s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header del modal */
+.evol-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f8faff, #ffffff);
+}
+
+.evol-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.evol-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 2px 10px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+
+.evol-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.evol-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.evol-close-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.evol-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Datos atención original */
+.evol-atencion-original {
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.evol-atencion-fecha {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.evol-atencion-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.evol-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.evol-value {
+  font-size: 13px;
+  color: #334155;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Body (scrolleable) */
+.evol-body {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
+.evol-body::-webkit-scrollbar { width: 5px; }
+.evol-body::-webkit-scrollbar-track { background: #f1f5f9; }
+.evol-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* Sección timeline */
+.evol-timeline-section {
+  padding: 16px 24px 8px 24px;
+  flex: 1;
+}
+
+.evol-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.evol-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.evol-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.evol-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: auto;
+}
+
+/* Estado vacío */
+.evol-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Timeline de items */
+.evol-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.evol-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.evol-item-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.evol-item-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+}
+
+.evol-item-line {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+.evol-item-content {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.evol-item-date {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.evol-item-nota {
+  font-size: 13px;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Formulario nuevo seguimiento */
+.evol-form-section {
+  padding: 12px 24px 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.evol-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  resize: vertical;
+  font-family: inherit;
+  color: #1e293b;
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  margin-bottom: 10px;
+}
+.evol-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+
+.evol-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.evol-btn-cerrar {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 16px;
+  cursor: pointer;
+  width: auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+.evol-btn-cerrar:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* Autor del registro / seguimiento */
+.evol-autor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+/* Fila meta de cada item (fecha + autor) */
+.evol-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+/* Botón adjuntar evidencia */
+.btn-accion-evidencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1.5px dashed #94a3b8;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  width: auto;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-accion-evidencia:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* Barra de previsualización del archivo seleccionado */
+.evol-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #1d4ed8;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.evol-file-remove {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  width: auto;
+  margin-left: auto;
+  line-height: 1;
+}
+.evol-file-remove:hover {
+  color: #dc2626;
+  background: transparent;
+}
+
+/* Contenedor de evidencia en cada item */
+.evol-evidencia {
+  margin-top: 8px;
+}
+
+/* Miniatura de imagen */
+.evol-evidencia-img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.evol-evidencia-img:hover { opacity: 0.85; }
+
+/* Link de descarga para no-imágenes */
+.evol-evidencia-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 4px 12px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.evol-evidencia-link:hover { background: #dbeafe; }
+
+/* ================= CARD BUSQUEDA DNI ================= */
+.card-busqueda {
+  min-height: 230px;
+  max-height: 230px;
+  display: flex;
+  flex-direction: column;
+  /* 📌 Sticky: se queda fija al hacer scroll */
+  position: sticky;
+  top: 92px; /* Justo bajo el navbar (~72px alto + 20px padding) */
+}
+
+/* ================= CARD PACIENTE (derecha) ================= */
+.card-paciente {
+  display: flex;
+  flex-direction: column;
+  /* Altura máxima = pantalla menos navbar y padding */
+  max-height: calc(100vh - 112px);
+  overflow: hidden; /* el scroll solo ocurre en el body interior */
+  padding: 0; /* el padding lo manejan header y body */
+}
+
+/* Zona fija superior: datos del paciente + consentimiento */
+.card-paciente-header {
+  padding: 20px 20px 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0; /* nunca se comprime */
+  background: white;
+  border-radius: 12px 12px 0 0;
+}
+
+/* Zona scrolleable inferior: formulario + historial */
+.card-paciente-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 20px 20px;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Scroll suave y personalizado */
+.card-paciente-body::-webkit-scrollbar {
+  width: 5px;
+}
+.card-paciente-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 0 0 12px 0;
+}
+.card-paciente-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.card-paciente-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ================= PACIENTE ACCIONES (barra de botones) ================= */
+.paciente-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+/* Base del botón de acción moderno */
+.btn-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  width: auto;
+  transition: transform 0.1s ease, box-shadow 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-accion:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+/* Variante Editar — azul */
+.btn-accion--edit {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.35);
+}
+.btn-accion--edit:hover {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(37,99,235,0.4);
+}
+
+/* Variante Dar de baja — rojo */
+.btn-accion--danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(239,68,68,0.35);
+}
+.btn-accion--danger:hover {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(239,68,68,0.4);
+}
+
+/* Variante Dar de alta — verde */
+.btn-accion--success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(16,185,129,0.35);
+}
+.btn-accion--success:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(16,185,129,0.4);
+}
+
+/* Variante Consentimiento — teal */
+.btn-accion--teal {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(13,148,136,0.35);
+}
+.btn-accion--teal:hover {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(13,148,136,0.4);
+}
+
 .card-busqueda form {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .card-busqueda .mensaje-busqueda {
@@ -1622,7 +2209,6 @@ button:disabled {
 
 @media (min-width: 1024px) {
   .chart-card:hover {
-    height: 400px !important; 
     transform: translateY(-2px) !important;
     box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     z-index: 50 !important;
@@ -1657,3 +2243,308 @@ button:disabled {
 .stats-table td:first-child { border-radius: 6px 0 0 6px; font-weight: 600; color: #1e293b; }
 .stats-table td:last-child { border-radius: 0 6px 6px 0; text-align: right; }
 .stats-toolbar { background: #fff !important; padding: 8px 12px !important; border-radius: 12px !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 16px !important; align-items: center !important; margin-bottom: 20px !important; border: 1px solid #f1f5f9 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important; } .toolbar-field { display: flex !important; align-items: center !important; gap: 8px !important; } .toolbar-field label { font-size: 0.72rem !important; font-weight: 700 !important; color: #64748b !important; white-space: nowrap !important; margin: 0 !important; } .toolbar-field input { width: 130px !important; padding: 6px 10px !important; margin: 0 !important; font-size: 0.8rem !important; height: 32px !important; border: 1px solid #e2e8f0 !important; } .stats-toolbar button { width: auto !important; padding: 0 16px !important; font-size: 0.78rem !important; height: 32px !important; white-space: nowrap !important; margin: 0 !important; }
+
+/* ================= AUDITORÍA: celda usuario ================= */
+.audit-user-name {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.audit-user-email {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+/* =====================================================
+   MODAL REGISTRO TRABAJADOR — mrt
+===================================================== */
+.mrt-modal {
+  background: #ffffff;
+  width: 640px;
+  max-width: 96vw;
+  max-height: 90vh;
+  border-radius: 18px;
+  box-shadow: 0 32px 72px rgba(0, 0, 0, 0.2);
+  animation: modalFadeIn 0.22s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.mrt-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 18px 24px;
+  background: linear-gradient(135deg, #f0f7ff, #ffffff);
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.mrt-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.mrt-header-text {
+  flex: 1;
+}
+
+.mrt-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 2px 0;
+}
+
+.mrt-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.mrt-close-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+  width: auto;
+  padding: 6px 7px;
+}
+.mrt-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Formulario */
+.mrt-form {
+  padding: 20px 24px 24px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mrt-form::-webkit-scrollbar { width: 5px; }
+.mrt-form::-webkit-scrollbar-track { background: #f1f5f9; }
+.mrt-form::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* Etiqueta de sección */
+.mrt-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #2563eb;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Grid de campos */
+.mrt-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mrt-row--3 {
+  grid-template-columns: 1fr 1fr 1.2fr;
+}
+
+.mrt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mrt-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.mrt-required {
+  color: #ef4444;
+}
+
+.mrt-input {
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #ffffff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+  width: 100%;
+}
+.mrt-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.mrt-input--disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Acciones */
+.mrt-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.mrt-btn-save {
+  padding: 9px 22px !important;
+  font-size: 13px !important;
+  flex: 1;
+}
+
+.mrt-btn-secondary {
+  background: transparent;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 20px;
+  cursor: pointer;
+  width: auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+.mrt-btn-secondary:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* ── Estado éxito ── */
+.mrt-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 28px;
+  text-align: center;
+}
+
+.mrt-success-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.mrt-success-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.mrt-success-sub {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.mrt-consent-box {
+  width: 100%;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.mrt-consent-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.mrt-consent-loading {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Botón WhatsApp */
+.mrt-wa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: filter 0.15s, transform 0.1s;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);
+}
+.mrt-wa-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: white;
+}
+
+/* Spinner animación */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.mrt-spin {
+  animation: spin 1s linear infinite;
+}
+

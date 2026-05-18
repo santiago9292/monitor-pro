@@ -199,8 +199,13 @@ function Estadisticas() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} dy={5} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', fontSize: '11px' }} />
-              <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3, fill: '#3b82f6', strokeWidth: 1, stroke: '#fff' }} />
+              <Tooltip 
+                cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', fontSize: '11px', background: '#fff', color: '#0f172a' }} 
+                formatter={(value) => [`${value} atenciones`, 'Total']}
+                labelFormatter={(label) => `Fecha: ${label}`}
+              />
+              <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3, fill: '#3b82f6', strokeWidth: 1, stroke: '#fff' }} activeDot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -211,10 +216,24 @@ function Estadisticas() {
           </div>
           <ResponsiveContainer width="100%" height="85%">
             <PieChart>
-              <Pie data={generoDist} innerRadius={35} outerRadius={50} paddingAngle={5} dataKey="value">
+              <Pie 
+                data={generoDist} 
+                innerRadius={30} 
+                outerRadius={45} 
+                paddingAngle={5} 
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
+                style={{ fontSize: '10px', fontWeight: '600', fill: '#475569' }}
+                activeShape={false}
+              >
                 {generoDist.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', fontSize: '11px', background: '#fff' }} 
+                itemStyle={{ fontWeight: 'bold', color: '#0f172a' }}
+                formatter={(value, name) => [`${value} pacientes`, name]}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -231,19 +250,36 @@ function Estadisticas() {
                 dataKey="cie" 
                 type="category" 
                 axisLine={false} 
-                tickLine={false} 
-                tick={({ x, y, payload }) => (
-                  <g transform={`translate(${x},${y})`}>
-                    <text x={-5} y={0} dy={4} textAnchor="end" fill="#1e293b" fontSize={9} fontWeight={600}>
-                      {payload.value.length > 20 ? `${payload.value.substring(0, 15)}...` : payload.value}
-                    </text>
-                  </g>
-                )}
-                width={80} 
+                tickLine={false}
+                interval={0}
+                tick={({ x, y, payload }) => {
+                  const code = payload.value.split('-')[0].trim();
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <text x={-5} y={0} dy={4} textAnchor="end" fill="#1e293b" fontSize={10} fontWeight={600}>
+                        {code}
+                      </text>
+                    </g>
+                  );
+                }}
+                width={50} 
               />
-              <Tooltip cursor={{fill: '#f8fafc'}} />
+              <Tooltip 
+                cursor={false} 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', maxWidth: '220px' }}>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#475569', lineHeight: '1.4' }}>{payload[0].payload.cie}</p>
+                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#3b82f6', fontWeight: 'bold' }}>{payload[0].value} atenciones</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
               <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12}>
-                <LabelList dataKey="total" position="right" style={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }} />
+                <LabelList dataKey="total" position="right" style={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

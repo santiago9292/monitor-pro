@@ -13,7 +13,8 @@ export const auditService = {
     try {
       // 1. Obtener usuario actual o usar el override
       let userEmail = overrideUser;
-      
+      let userName  = null;
+
       if (!userEmail) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -21,9 +22,19 @@ export const auditService = {
           return;
         }
         userEmail = user.email;
+
+        // Buscar nombre completo en profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, nombres, apellidos')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          userName = profile.full_name || `${profile.nombres} ${profile.apellidos}`.trim();
+        }
       }
 
-      // 2. Obtener IP pública (usando servicio externo de forma segura)
+      // 2. Obtener IP pública
       let ip = 'Unknown';
       try {
         const response = await fetch('https://api.ipify.org?format=json');
@@ -33,9 +44,10 @@ export const auditService = {
         console.error('Audit: Error fetching IP address', err);
       }
 
-      // 3. Insertar en la tabla audit_logs
+      // 3. Insertar en audit_logs
       const { error } = await supabase.from('audit_logs').insert({
         user_email: userEmail,
+        user_name:  userName,
         action,
         module,
         description,

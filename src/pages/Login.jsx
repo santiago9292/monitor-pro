@@ -89,7 +89,7 @@ export default function Login() {
         <form className="mp-login-card" onSubmit={handleLogin}>
           <img src={logo} alt="Monitor Pro" className="mp-login-logo" />
           <h1>MONITOR PRO®</h1>
-          <p className="mp-login-subtitle">
+          <p className="mp-login-subtitle" style={{ whiteSpace: 'nowrap', fontSize: '14px' }}>
             Sistema de Vigilancia de Salud Ocupacional
           </p>
 
@@ -126,7 +126,9 @@ export default function Login() {
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
 
-          <span className="mp-login-link">¿Olvidaste tu contraseña?</span>
+          <p style={{ marginTop: '16px', fontSize: '12px', color: '#64748b', textAlign: 'center', lineHeight: '1.4' }}>
+            Al usar el sistema MONITOR PRO®, acepta los <b>Términos y Condiciones</b>.
+          </p>
         </form>
       ) : (
         <form className="mp-login-card" onSubmit={handleMfaVerify}>

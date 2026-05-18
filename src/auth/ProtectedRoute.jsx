@@ -1,9 +1,9 @@
 import { Navigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabase"
+import { auditService } from "../services/auditService"
 
 export default function ProtectedRoute({ children }) {
-  return children // TEMPORARY BYPASS FOR TESTING
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -60,6 +60,45 @@ export default function ProtectedRoute({ children }) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Rastreador de inactividad (10 minutos)
+  useEffect(() => {
+    let timeoutId;
+
+    const logoutDueToInactivity = async () => {
+      if (session) {
+        try {
+          await auditService.record({
+            action: 'LOGOUT',
+            module: 'Autenticación',
+            description: 'El usuario cerró sesión automáticamente por inactividad (10 minutos).'
+          });
+          await supabase.auth.signOut();
+        } catch (error) {
+          console.error("Error al cerrar sesión por inactividad:", error);
+        }
+      }
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      // 10 minutos = 600,000 milisegundos
+      timeoutId = setTimeout(logoutDueToInactivity, 600000);
+    };
+
+    if (session) {
+      resetTimer();
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+      const handleActivity = () => resetTimer();
+      
+      events.forEach(event => document.addEventListener(event, handleActivity));
+
+      return () => {
+        clearTimeout(timeoutId);
+        events.forEach(event => document.removeEventListener(event, handleActivity));
+      };
+    }
+  }, [session]);
 
   if (loading) return null
 

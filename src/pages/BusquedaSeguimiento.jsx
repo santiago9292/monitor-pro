@@ -4,6 +4,7 @@ import { auditService } from '../services/auditService'
 import { consentService } from '../services/consentService'
 import logo from '../assets/logo.png'
 import ModalRegistroTrabajador from '../components/ModalRegistroTrabajador'
+import ModalEvolucion from '../components/ModalEvolucion'
 
 
 function BusquedaSeguimiento() {
@@ -29,6 +30,11 @@ function BusquedaSeguimiento() {
   const [trabajadorParaEditar, setTrabajadorParaEditar] = useState(null)
   const [errores, setErrores] = useState({})
 
+  const [registroSeleccionado, setRegistroSeleccionado] = useState(null)
+  const [mostrarEvolucion, setMostrarEvolucion] = useState(false)
+  const [evolucionCounts, setEvolucionCounts] = useState({})
+  const [currentUserName, setCurrentUserName] = useState('')
+
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoApellido, setNuevoApellido] = useState('')
   const [nuevoDni, setNuevoDni] = useState('')
@@ -46,6 +52,22 @@ function BusquedaSeguimiento() {
   ======================= */
   useEffect(() => {
     dniInputRef.current?.focus()
+    // Cargar nombre del usuario actual
+    const cargarUsuario = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, nombres, apellidos')
+        .eq('id', session.user.id)
+        .single()
+      if (profile) {
+        setCurrentUserName(profile.full_name || `${profile.nombres} ${profile.apellidos}`)
+      } else {
+        setCurrentUserName(session.user.email)
+      }
+    }
+    cargarUsuario()
   }, [])
 
   useEffect(() => {
@@ -185,11 +207,27 @@ function BusquedaSeguimiento() {
   const cargarHistorial = async (id) => {
     const { data } = await supabase
       .from('registros_medicos')
-      .select('id, fecha, sintomas, recomendaciones, cie')
+      .select('id, fecha, sintomas, recomendaciones, cie, created_by_name')
       .eq('trabajador_id', id)
       .order('fecha', { ascending: false })
 
-    setHistorial(data || [])
+    const registros = data || []
+    setHistorial(registros)
+
+    // Cargar conteo de evoluciones para cada registro
+    if (registros.length > 0) {
+      const ids = registros.map(r => r.id)
+      const { data: evols } = await supabase
+        .from('evoluciones')
+        .select('registro_medico_id')
+        .in('registro_medico_id', ids)
+
+      const counts = {}
+      ;(evols || []).forEach(e => {
+        counts[e.registro_medico_id] = (counts[e.registro_medico_id] || 0) + 1
+      })
+      setEvolucionCounts(counts)
+    }
   }
 
   /* =======================
@@ -223,11 +261,12 @@ function BusquedaSeguimiento() {
   if (!sintomas.trim() || !diagnostico) return
 
   const { error } = await supabase.from('registros_medicos').insert({
-    trabajador_id: trabajador.id,
+    trabajador_id:   trabajador.id,
     sintomas,
     recomendaciones,
-    cie: `${diagnostico.codigo} - ${diagnostico.descripcion}`,
-    fecha: new Date().toISOString() // ✅ UTC limpio
+    cie:             `${diagnostico.codigo} - ${diagnostico.descripcion}`,
+    fecha:           new Date().toISOString(),
+    created_by_name: currentUserName || null
   })
 
   if (!error) {
@@ -272,157 +311,169 @@ function BusquedaSeguimiento() {
         {/* CARD BÚSQUEDA */}
         <div className="card card-busqueda">
 
-          <h3>Búsqueda por DNI</h3>
+          <h3 className="busqueda-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#0f172a' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <defs><linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#2563eb" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Búsqueda por DNI
+          </h3>
 
-          <form onSubmit={e => { e.preventDefault(); buscar() }}>
-            <input
-              ref={dniInputRef}
-              placeholder="Ingrese DNI"
-              value={dni}
-              onChange={e => setDni(e.target.value.replace(/\D/g, ''))}
-              maxLength={8}
-            />
-            <button type="submit">
-              {cargando ? 'Buscando...' : 'Buscar trabajador'}
+          <form onSubmit={e => { e.preventDefault(); buscar() }} className="busqueda-form">
+            <div style={{ position: 'relative', marginBottom: '12px' }}>
+              <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
+                <circle cx="8" cy="12" r="2" />
+                <line x1="13" y1="10" x2="19" y2="10" />
+                <line x1="13" y1="14" x2="19" y2="14" />
+              </svg>
+              <input
+                className="mrt-input"
+                ref={dniInputRef}
+                placeholder="Ingrese DNI (8 dígitos)"
+                value={dni}
+                onChange={e => setDni(e.target.value.replace(/\D/g, ''))}
+                maxLength={8}
+                style={{ paddingLeft: '38px', width: '100%' }}
+              />
+            </div>
+            
+            <button type="submit" className="btn-accion btn-accion--edit" disabled={cargando} style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
+              {cargando ? (
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mrt-spin">
+                    <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+                  </svg>
+                  Buscando...
+                </>
+              ) : (
+                'Buscar trabajador'
+              )}
             </button>
           </form>
 
-          <p className="mensaje-busqueda">{mensaje}</p>
-          {noExiste && (
-  <button
-    type="button"
-    className="btn-primary"
-    style={{ marginTop: 10 }}
-    onClick={() => setMostrarModal(true)}
-  >
-    ➕ Registrar trabajador
-  </button>
-)}
+          <p className="mensaje-busqueda" style={{ marginTop: '8px', fontSize: '13px', color: '#64748b', textAlign: 'center' }}>
+            {mensaje || 'Ingrese el DNI para cargar el historial'}
+          </p>
 
+          {noExiste && (
+            <button
+              type="button"
+              className="btn-accion btn-accion--success"
+              style={{ width: '100%', justifyContent: 'center', marginTop: '10px', padding: '10px' }}
+              onClick={() => setMostrarModal(true)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Registrar trabajador
+            </button>
+          )}
 
         </div>
 
         {/* CARD TRABAJADOR */}
         {trabajador && (
-          <div className="card">
-            <span className="badge" style={{
-              background: trabajador.empresa?.endsWith(' (DE BAJA)') ? '#fee2e2' : '#eff6ff',
-              color: trabajador.empresa?.endsWith(' (DE BAJA)') ? '#ef4444' : '#3b82f6',
-              fontWeight: 'bold'
-            }}>
-              {trabajador.empresa?.endsWith(' (DE BAJA)') ? 'DE BAJA' : 'Paciente'}
-            </span>
+          <div className="card card-paciente">
+            {/* ── HEADER STICKY ── */}
+            <div className="card-paciente-header">
+              {/* Badge + nombre en la misma fila */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <span className="badge" style={{
+                  background: trabajador.empresa?.endsWith(' (DE BAJA)') ? '#fee2e2' : '#eff6ff',
+                  color: trabajador.empresa?.endsWith(' (DE BAJA)') ? '#ef4444' : '#3b82f6',
+                  fontWeight: 'bold',
+                  flexShrink: 0
+                }}>
+                  {trabajador.empresa?.endsWith(' (DE BAJA)') ? 'DE BAJA' : 'Paciente'}
+                </span>
+                <h3 style={{ margin: 0, fontSize: '17px' }}>
+                  {trabajador.nombres} {trabajador.apellidos}
+                </h3>
+              </div>
 
-            <h3>
-              {trabajador.nombres} {trabajador.apellidos}
-            </h3>
-
-            {/* ACCIONES DE TRABAJADOR */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px', marginBottom: '15px' }}>
-              <button
-                onClick={() => {
-                  setTrabajadorParaEditar(trabajador)
-                  setMostrarModal(true)
-                }}
-                className="btn-primary"
-                style={{ 
-                  background: '#2563eb', 
-                  fontSize: '12px', 
-                  padding: '6px 12px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                ✏️ Editar Trabajador
-              </button>
-
-              {trabajador.empresa?.endsWith(' (DE BAJA)') ? (
+              {/* ── FILA ÚNICA DE ACCIONES ── */}
+              <div className="paciente-acciones">
+                {/* Editar */}
                 <button
-                  onClick={async () => {
-                    if (window.confirm('¿Desea volver a dar de alta/reactivar a este trabajador?')) {
-                      await reactivarTrabajador(trabajador)
-                    }
-                  }}
-                  className="btn-primary"
-                  style={{ 
-                    background: '#10b981', 
-                    fontSize: '12px', 
-                    padding: '6px 12px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
+                  className="btn-accion btn-accion--edit"
+                  onClick={() => {
+                    setTrabajadorParaEditar(trabajador)
+                    setMostrarModal(true)
                   }}
                 >
-                  🟢 Dar de alta
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Editar
                 </button>
-              ) : (
-                <button
-                  onClick={async () => {
-                    if (window.confirm('¿Está seguro de que desea dar de baja a este trabajador? Ya no se considerará para las estadísticas ni reportes gerenciales.')) {
-                      await darDeBajaTrabajador(trabajador)
-                    }
-                  }}
-                  className="btn-primary"
-                  style={{ 
-                    background: '#ef4444', 
-                    fontSize: '12px', 
-                    padding: '6px 12px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  🔴 Dar de baja
-                </button>
-              )}
-            </div>
 
-            {/* DATOS EN 2 COLUMNAS */}
-            <div className="paciente-info">
-              <div>
-                <p><b>DNI:</b> {trabajador.dni}</p>
-                <p><b>Fecha de nacimiento:</b> {formatearFechaNacimiento(trabajador.fecha_nacimiento)}</p>
-                <p><b>Sexo:</b> {trabajador.sexo === 'M' ? 'Masculino' : 'Femenino'}</p>
+                {/* Dar de baja / alta */}
+                {trabajador.empresa?.endsWith(' (DE BAJA)') ? (
+                  <button
+                    className="btn-accion btn-accion--success"
+                    onClick={async () => {
+                      if (window.confirm('¿Desea volver a dar de alta/reactivar a este trabajador?')) {
+                        await reactivarTrabajador(trabajador)
+                      }
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Dar de alta
+                  </button>
+                ) : (
+                  <button
+                    className="btn-accion btn-accion--danger"
+                    onClick={async () => {
+                      if (window.confirm('¿Está seguro de que desea dar de baja a este trabajador?')) {
+                        await darDeBajaTrabajador(trabajador)
+                      }
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Dar de baja
+                  </button>
+                )}
+
+                {/* Descargar consentimiento */}
+                {consentimiento && (
+                  <button
+                    className="btn-accion btn-accion--teal"
+                    onClick={async () => {
+                      const win = window.open(consentimiento.pdf_url, '_blank');
+                      if (win) win.focus();
+                      await auditService.record({
+                        action: 'DOWNLOAD',
+                        module: 'Consentimientos',
+                        description: `Descargó el consentimiento firmado de: ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni})`,
+                        details: { dni: trabajador.dni, pdf_url: consentimiento.pdf_url }
+                      });
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Consentimiento
+                  </button>
+                )}
               </div>
-              <div>
-                <p><b>Empresa:</b> {trabajador.empresa || '-'}</p>
-                <p><b>Dirección:</b> {trabajador.direccion || '-'}</p>
-                <p><b>Teléfono:</b> {trabajador.telefono || '-'}</p>
+              {/* ── FIN FILA DE ACCIONES ── */}
+
+              {/* DATOS EN 2 COLUMNAS */}
+              <div className="paciente-info">
+                <div>
+                  <p><b>DNI:</b> {trabajador.dni}</p>
+                  <p><b>Fecha de nacimiento:</b> {formatearFechaNacimiento(trabajador.fecha_nacimiento)}</p>
+                  <p><b>Sexo:</b> {trabajador.sexo === 'M' ? 'Masculino' : 'Femenino'}</p>
+                  <p><b>Teléfono:</b> {trabajador.telefono || '-'}</p>
+                </div>
+                <div>
+                  <p><b>Empresa:</b> {trabajador.empresa || '-'}</p>
+                  {trabajador.puesto && <p><b>Puesto:</b> {trabajador.puesto}</p>}
+                  <p><b>Dirección:</b> {trabajador.direccion || '-'}</p>
+                </div>
               </div>
             </div>
+            {/* ── FIN HEADER STICKY ── */}
 
-            {/* BOTÓN CONSENTIMIENTO SI EXISTE */}
-            {consentimiento && (
-              <div style={{ marginTop: '10px', marginBottom: '15px' }}>
-                <button 
-                  onClick={async () => {
-                    const win = window.open(consentimiento.pdf_url, '_blank');
-                    if (win) win.focus();
-                    
-                    await auditService.record({
-                      action: 'DOWNLOAD',
-                      module: 'Consentimientos',
-                      description: `Descargó el consentimiento firmado de: ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni})`,
-                      details: { dni: trabajador.dni, pdf_url: consentimiento.pdf_url }
-                    });
-                  }}
-                  className="mp-roles-primary-btn"
-                  style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    background: '#0d9488',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    padding: '8px 14px'
-                  }}
-                >
-                  📄 Descargar Consentimiento Firmado
-                </button>
-              </div>
-            )}
+            {/* ── BODY SCROLLEABLE ── */}
+            <div className="card-paciente-body">
 
             {/* BANNER: Trabajador de baja */}
             {trabajador.empresa?.endsWith(' (DE BAJA)') && (
@@ -507,8 +558,23 @@ function BusquedaSeguimiento() {
                     <div className="historial-fecha">
                       {formatearFechaHoraPE(item.fecha)}
                     </div>
-                    <div className="historial-card">
-                      <div className="historial-cie">{item.cie}</div>
+                    <div
+                      className="historial-card historial-card--clickable"
+                      onClick={() => {
+                        setRegistroSeleccionado(item)
+                        setMostrarEvolucion(true)
+                      }}
+                      title="Click para ver o agregar seguimientos de evolución"
+                    >
+                      <div className="historial-card-top">
+                        <div className="historial-cie">{item.cie}</div>
+                        <div className="historial-evol-badge">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
+                          {evolucionCounts[item.id] || 0} seguimiento{(evolucionCounts[item.id] || 0) !== 1 ? 's' : ''}
+                        </div>
+                      </div>
                       <div><b>Síntomas:</b> {item.sintomas}</div>
                       <div><b>Recomendaciones:</b> {item.recomendaciones}</div>
                     </div>
@@ -516,6 +582,8 @@ function BusquedaSeguimiento() {
                 ))}
               </div>
             )}
+            </div>
+            {/* ── FIN BODY SCROLLEABLE ── */}
           </div>
         )}
       </div>
@@ -531,7 +599,19 @@ function BusquedaSeguimiento() {
           setMostrarModal(false)
           setTrabajadorParaEditar(null)
           setNoExiste(false)
-          buscar() // vuelve a ejecutar la búsqueda y carga el trabajador
+          buscar()
+        }}
+      />
+
+      <ModalEvolucion
+        abierto={mostrarEvolucion}
+        registro={registroSeleccionado}
+        trabajador={trabajador}
+        onClose={() => {
+          setMostrarEvolucion(false)
+          setRegistroSeleccionado(null)
+          // Refrescar conteos al cerrar
+          if (trabajador) cargarHistorial(trabajador.id)
         }}
       />
 

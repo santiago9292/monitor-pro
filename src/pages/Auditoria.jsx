@@ -158,7 +158,12 @@ export default function Auditoria() {
                 logs.map((log) => (
                   <tr key={log.id}>
                     <td>{formatDateTime(log.created_at)}</td>
-                    <td>{log.user_email}</td>
+                    <td>
+                      {log.user_name && (
+                        <span className="audit-user-name">{log.user_name}</span>
+                      )}
+                      <span className="audit-user-email">{log.user_email}</span>
+                    </td>
                     <td>
                       <span className={`mp-audit-action ${getActionClass(log.action)}`}>
                         {log.action}

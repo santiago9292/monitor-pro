@@ -88,6 +88,7 @@ export default function PublicConsent() {
               ...prev,
               nombre: (workerData.nombres || '').toUpperCase(),
               apellidos: (workerData.apellidos || '').toUpperCase(),
+              cargo: (workerData.puesto || '').toUpperCase(),
               empresa: (workerData.empresa || '').toUpperCase()
             }));
           }

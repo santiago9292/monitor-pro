@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { supabase } from '../lib/supabase'
+import { auditService } from '../services/auditService'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -40,6 +41,11 @@ export default function Navbar() {
   }, [])
 
   const handleLogout = async () => {
+    await auditService.record({
+      action: 'LOGOUT',
+      module: 'Autenticación',
+      description: 'El usuario cerró sesión manualmente (click en Cerrar sesión).'
+    });
     await supabase.auth.signOut()
     navigate("/login", { replace: true })
   }

@@ -99,6 +99,7 @@ export default function Consentimiento() {
               ...prev,
               nombre: (data.nombres || '').toUpperCase(),
               apellidos: (data.apellidos || '').toUpperCase(),
+              cargo: (data.puesto || '').toUpperCase(),
               empresa: (data.empresa || '').toUpperCase()
             }));
           }
