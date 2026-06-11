@@ -3,6 +3,12 @@
 --  Ejecutar en Supabase SQL Editor para corregir el acceso a tablas
 -- ================================================================
 
+-- 0. Recrear la vista auxiliar para evitar recursión RLS
+DROP VIEW IF EXISTS public.profiles_view CASCADE;
+CREATE VIEW public.profiles_view AS
+  SELECT id, role, empresa_id FROM public.profiles;
+GRANT SELECT ON public.profiles_view TO authenticated, anon;
+
 -- 1. Recrear funciones auxiliares apuntando a la vista profiles_view
 -- (profiles_view evita la recursión al no aplicar RLS de la tabla profiles)
 
