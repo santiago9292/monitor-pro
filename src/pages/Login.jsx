@@ -3,51 +3,108 @@ import { useNavigate } from "react-router-dom"
 import { supabase } from "../lib/supabase"
 import logo from "../assets/logo.png"
 import { auditService } from "../services/auditService"
+import { useEmpresa } from "../context/EmpresaContext"
 
 export default function Login() {
+  const [codigoEmpresa, setCodigoEmpresa] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [mfaCode, setMfaCode] = useState("")
-  const [showMfa, setShowMfa] = useState(false)
+
+  const [step, setStep] = useState("login") // "login" | "mfa" | "selectEmpresa"
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [tempData, setTempData] = useState(null)
-  const navigate = useNavigate()
+  const [empresasParaSeleccionar, setEmpresasParaSeleccionar] = useState([])
 
+  const navigate = useNavigate()
+  const { setActiveEmpresa, loadEmpresasForUser } = useEmpresa()
+
+  // ── PASO 1: Login principal ──────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // 1a. Para super_admin, el código de empresa no es obligatorio
+      const codigoBuscado = codigoEmpresa.trim().toUpperCase()
 
+      let empresaData = null
+      if (codigoBuscado) {
+        const { data: emp, error: empError } = await supabase
+          .from("empresas")
+          .select("id, codigo, nombre, logo_url, activa")
+          .eq("codigo", codigoBuscado)
+          .single()
+
+        if (empError || !emp) {
+          setError("Código de empresa no válido o empresa no encontrada.")
+          setLoading(false)
+          return
+        }
+        if (!emp.activa) {
+          setError("La empresa está desactivada. Contacte al administrador.")
+          setLoading(false)
+          return
+        }
+        empresaData = emp
+      }
+
+      // 1b. Autenticar con Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) {
-        setError("Credenciales inválidas o error de conexión")
+        setError("Credenciales inválidas o error de conexión.")
         setLoading(false)
         return
       }
 
-      // Verificar si el usuario tiene MFA habilitado
+      const userId = data.user.id
+
+      // 1c. Obtener perfil y rol
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, status, empresa_id")
+        .eq("id", userId)
+        .single()
+
+      if (profileError || !profile) {
+        setError("No se encontró un perfil para este usuario.")
+        await supabase.auth.signOut()
+        setLoading(false)
+        return
+      }
+
+      if (profile.status === "inactivo") {
+        setError("Su cuenta está desactivada. Contacte al administrador.")
+        await supabase.auth.signOut()
+        setLoading(false)
+        return
+      }
+
+      // 1d. Guardar datos temporales para continuar
+      setTempData({ userId, role: profile.role, empresaData })
+
+      // 1e. Verificar si tiene MFA habilitado
       const { data: { all: factors } } = await supabase.auth.mfa.listFactors()
-      const mfaFactor = factors.find(f => f.status === 'verified')
+      const mfaFactor = factors.find(f => f.status === "verified")
 
       if (mfaFactor) {
-        setTempData({ factorId: mfaFactor.id })
-        setShowMfa(true)
+        setTempData(prev => ({ ...prev, factorId: mfaFactor.id }))
+        setStep("mfa")
         setLoading(false)
-      } else {
-        await completeLogin(email)
+        return
       }
+
+      // 1f. Sin MFA → continuar al proceso de empresa
+      await procesarEmpresaYEntrar(userId, profile.role, empresaData)
     } catch (err) {
       setError("Error inesperado: " + err.message)
       setLoading(false)
     }
   }
 
+  // ── PASO 2 (opcional): Verificar MFA ────────────────────────────
   const handleMfaVerify = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -64,101 +121,189 @@ export default function Login() {
         challengeId: challengeData.id,
         code: mfaCode
       })
-
       if (verifyError) throw verifyError
 
-      await completeLogin(email)
-    } catch (err) {
-      setError("Código de verificación incorrecto")
+      await procesarEmpresaYEntrar(tempData.userId, tempData.role, tempData.empresaData)
+    } catch {
+      setError("Código de verificación incorrecto.")
       setLoading(false)
     }
   }
 
-  const completeLogin = async (userEmail) => {
-    await auditService.record({
-      action: 'LOGIN',
-      module: 'Autenticación',
-      description: `El usuario ${userEmail} inició sesión en el sistema.`
-    })
-    navigate("/")
+  // ── Lógica central: validar acceso a empresa y navegar ──────────
+  const procesarEmpresaYEntrar = async (userId, role, empresaData) => {
+    try {
+      // super_admin: no requiere código de empresa. Carga todas las empresas.
+      if (role === "super_admin") {
+        const empresas = await loadEmpresasForUser(userId, role)
+        if (empresaData) {
+          setActiveEmpresa(empresaData)
+        } else if (empresas.length === 1) {
+          setActiveEmpresa(empresas[0])
+        }
+        await registrarLoginAudit(email)
+        navigate("/")
+        return
+      }
+
+      // Para médico: verificar acceso a la empresa indicada
+      if (role === "medico") {
+        if (!empresaData) {
+          setError("Los médicos deben ingresar un código de empresa.")
+          await supabase.auth.signOut()
+          setLoading(false)
+          return
+        }
+
+        const { data: asignacion } = await supabase
+          .from("medico_empresas")
+          .select("id")
+          .eq("medico_id", userId)
+          .eq("empresa_id", empresaData.id)
+          .eq("activo", true)
+          .maybeSingle()
+
+        if (!asignacion) {
+          setError("No tiene acceso asignado a la empresa " + empresaData.nombre + ".")
+          await supabase.auth.signOut()
+          setLoading(false)
+          return
+        }
+
+        // Cargar todas las empresas del médico para posible switch posterior
+        const todasEmpresas = await loadEmpresasForUser(userId, role)
+        setActiveEmpresa(empresaData)
+        await registrarLoginAudit(email)
+        navigate("/")
+        return
+      }
+
+      // Para admin, enfermeria, rrhh, tecnico: verificar que el código coincida con su empresa
+      if (!empresaData) {
+        setError("Debe ingresar el código de empresa.")
+        await supabase.auth.signOut()
+        setLoading(false)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("id", userId)
+        .single()
+
+      if (profile?.empresa_id !== empresaData.id) {
+        setError("El código de empresa no corresponde a su cuenta.")
+        await supabase.auth.signOut()
+        setLoading(false)
+        return
+      }
+
+      setActiveEmpresa(empresaData)
+      await registrarLoginAudit(email)
+      navigate("/")
+    } catch (err) {
+      setError("Error al verificar acceso: " + err.message)
+      setLoading(false)
+    }
   }
 
+  const registrarLoginAudit = async (userEmail) => {
+    await auditService.record({
+      action: "LOGIN",
+      module: "Autenticación",
+      description: `El usuario ${userEmail} inició sesión en el sistema.`
+    })
+  }
+
+  // ── RENDER ───────────────────────────────────────────────────────
   return (
     <div className="mp-login">
-      {!showMfa ? (
+      {step === "login" && (
         <form className="mp-login-card" onSubmit={handleLogin}>
           <img src={logo} alt="Monitor Pro" className="mp-login-logo" />
           <h1>MONITOR PRO®</h1>
-          <p className="mp-login-subtitle" style={{ whiteSpace: 'nowrap', fontSize: '14px' }}>
+          <p className="mp-login-subtitle" style={{ whiteSpace: "nowrap", fontSize: "14px" }}>
             Sistema de Vigilancia de Salud Ocupacional
           </p>
 
           {error && (
-            <div className="alert-error" style={{ 
-              background: '#fee2e2', 
-              color: '#b91c1c', 
-              padding: '10px', 
-              borderRadius: '6px', 
-              fontSize: '13px', 
-              marginBottom: '10px',
-              textAlign: 'center'
+            <div className="alert-error" style={{
+              background: "#fee2e2", color: "#b91c1c", padding: "10px",
+              borderRadius: "6px", fontSize: "13px", marginBottom: "10px", textAlign: "center"
             }}>
               {error}
             </div>
           )}
 
-          <input 
-            type="email" 
-            placeholder="Correo electrónico" 
+          <div style={{ position: "relative", marginBottom: "15px" }}>
+            <span style={{
+              position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)",
+              fontSize: "16px", pointerEvents: "none"
+            }}>🏢</span>
+            <input
+              type="text"
+              id="codigo_empresa"
+              placeholder="Código de empresa (ej: MINSUR)"
+              value={codigoEmpresa}
+              onChange={(e) => setCodigoEmpresa(e.target.value.toUpperCase())}
+              style={{ paddingLeft: "38px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "0px" }}
+              autoFocus
+            />
+          </div>
+
+          <input
+            type="email"
+            id="email"
+            placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <input 
-            type="password" 
-            placeholder="Contraseña" 
+          <input
+            type="password"
+            id="password"
+            placeholder="Contraseña"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+            {loading ? "Verificando..." : "Iniciar Sesión"}
           </button>
 
-          <p style={{ marginTop: '16px', fontSize: '12px', color: '#64748b', textAlign: 'center', lineHeight: '1.4' }}>
+          <p style={{ marginTop: "16px", fontSize: "12px", color: "#64748b", textAlign: "center", lineHeight: "1.4" }}>
             Al usar el sistema MONITOR PRO®, acepta los <b>Términos y Condiciones</b>.
           </p>
         </form>
-      ) : (
+      )}
+
+      {step === "mfa" && (
         <form className="mp-login-card" onSubmit={handleMfaVerify}>
           <img src={logo} alt="Monitor Pro" className="mp-login-logo" />
-          <h2 style={{ marginBottom: '10px' }}>Verificación MFA</h2>
+          <h2 style={{ marginBottom: "10px" }}>Verificación MFA</h2>
           <p className="mp-login-subtitle">
             Ingrese el código de su aplicación autenticadora
           </p>
 
           {error && (
-            <div className="alert-error" style={{ 
-              background: '#fee2e2', 
-              color: '#b91c1c', 
-              padding: '10px', 
-              borderRadius: '6px', 
-              fontSize: '13px', 
-              marginBottom: '10px',
-              textAlign: 'center'
+            <div className="alert-error" style={{
+              background: "#fee2e2", color: "#b91c1c", padding: "10px",
+              borderRadius: "6px", fontSize: "13px", marginBottom: "10px", textAlign: "center"
             }}>
               {error}
             </div>
           )}
 
-          <input 
-            type="text" 
+          <input
+            type="text"
+            id="mfa_code"
             placeholder="000000"
             maxLength={6}
             value={mfaCode}
-            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-            style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '4px' }}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+            style={{ textAlign: "center", fontSize: "24px", letterSpacing: "4px" }}
             required
             autoFocus
           />
@@ -166,18 +311,11 @@ export default function Login() {
           <button type="submit" disabled={loading}>
             {loading ? "Verificando..." : "Confirmar Código"}
           </button>
-          
-          <button 
-            type="button" 
-            onClick={() => setShowMfa(false)} 
-            style={{ 
-              marginTop: '10px', 
-              background: 'none', 
-              border: 'none', 
-              color: '#64748b', 
-              fontSize: '12px', 
-              cursor: 'pointer' 
-            }}
+
+          <button
+            type="button"
+            onClick={() => { setStep("login"); setError(null) }}
+            style={{ marginTop: "10px", background: "none", border: "none", color: "#64748b", fontSize: "12px", cursor: "pointer" }}
           >
             Volver
           </button>

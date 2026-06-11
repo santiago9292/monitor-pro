@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { auditService } from '../services/auditService';
 
 export default function Auditoria() {
+  const [searchParams] = useSearchParams();
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,18 +15,31 @@ export default function Auditoria() {
   const [filterDni, setFilterDni] = useState('');
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    const userParam = searchParams.get('user');
+    if (userParam) {
+      setFilterUser(userParam);
+      loadInitialData(userParam);
+    } else {
+      setFilterUser('Todos');
+      loadInitialData('Todos');
+    }
+  }, [searchParams]);
 
-  async function loadInitialData() {
+  async function loadInitialData(initialUser = 'Todos') {
     setLoading(true);
     try {
+      const filter = initialUser && initialUser !== 'Todos' ? { user: initialUser } : {};
       const [dataLogs, dataUsers] = await Promise.all([
-        auditService.getLogs(),
+        auditService.getLogs(filter),
         auditService.getUniqueUsers()
       ]);
       setLogs(dataLogs);
-      setUsers(dataUsers);
+      
+      const finalUsers = [...dataUsers];
+      if (initialUser && initialUser !== 'Todos' && !finalUsers.includes(initialUser)) {
+        finalUsers.unshift(initialUser);
+      }
+      setUsers(finalUsers);
     } catch (error) {
       console.error('Error loading audit data:', error);
     } finally {

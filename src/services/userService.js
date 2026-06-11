@@ -43,20 +43,23 @@ export const userService = {
    */
   async updateProfile(userId, data) {
     try {
+      const nombresUpper = data.nombres ? data.nombres.trim().toUpperCase() : '';
+      const apellidosUpper = data.apellidos ? data.apellidos.trim().toUpperCase() : '';
       const { error } = await supabase
         .from('profiles')
         .upsert({
           id: userId,
-          nombres: data.nombres,
-          apellidos: data.apellidos,
-          full_name: `${data.nombres} ${data.apellidos}`,
+          nombres: nombresUpper,
+          apellidos: apellidosUpper,
+          full_name: `${nombresUpper} ${apellidosUpper}`.trim(),
           email: data.email,
           dni: data.dni,
           is_medico: data.is_medico,
           cmp: data.is_medico ? data.cmp : null,
-          genero: data.genero,
+          genero: data.genero ? data.genero.trim().toUpperCase() : null,
           fecha_nacimiento: data.fecha_nacimiento,
           role: data.role,
+          empresa_id: data.empresa_id || null,   // ← multi-tenant
           updated_at: new Date().toISOString()
         });
       

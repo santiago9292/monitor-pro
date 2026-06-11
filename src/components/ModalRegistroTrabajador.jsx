@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { auditService } from '../services/auditService'
 import { consentService } from '../services/consentService'
+import { useEmpresa } from '../context/EmpresaContext'
 
 export default function ModalRegistroTrabajador({
   abierto,
@@ -12,6 +13,7 @@ export default function ModalRegistroTrabajador({
   trabajadorParaEditar = null
 }) {
   const nombreRef = useRef(null)
+  const { empresaId } = useEmpresa()
 
   const [dni, setDni]                         = useState('')
   const [nombres, setNombres]                 = useState('')
@@ -119,7 +121,8 @@ export default function ModalRegistroTrabajador({
           empresa:          empresa.trim(),
           puesto:           puesto.trim() || null,
           direccion:        direccion.trim(),
-          telefono:         telefono.trim()
+          telefono:         telefono.trim(),
+          empresa_id:       empresaId,        // ← multi-tenant
         })
         .select()
         .single()

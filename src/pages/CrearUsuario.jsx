@@ -1,12 +1,33 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
+import { createClient } from "@supabase/supabase-js"
 import { auditService } from "../services/auditService"
 import { userService } from "../services/userService"
+import { useEmpresa } from "../context/EmpresaContext"
+
+// Inicializar el cliente temporal una sola vez fuera del componente para evitar advertencias de múltiples instancias
+const tempSupabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {}
+      }
+    }
+  }
+)
 
 export default function CrearUsuario() {
+  const { empresaId } = useEmpresa()
   const [formData, setFormData] = useState({
     email: "",
-    password: "Pro" + Math.floor(100000 + Math.random() * 900000), // Contraseña aleatoria
+    password: "Pro" + Math.floor(100000 + Math.random() * 900000),
     nombres: "",
     apellidos: "",
     dni: "",
@@ -14,7 +35,7 @@ export default function CrearUsuario() {
     cmp: "",
     genero: "M",
     fecha_nacimiento: "",
-    role: "usuario"
+    role: "enfermeria"
   });
 
   const [loading, setLoading] = useState(false)
@@ -35,8 +56,7 @@ export default function CrearUsuario() {
     setMensaje("")
     setError("")
 
-    // 1. Crear el usuario en Auth (Supabase maneja la creación en auth.users)
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    const { data: authData, error: signUpError } = await tempSupabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
@@ -57,8 +77,7 @@ export default function CrearUsuario() {
     // Vamos a esperar un momento y actualizar el perfil con los datos extendidos.
     const userId = authData.user?.id;
     if (userId) {
-      // Intentamos actualizar el perfil (esperando que el trigger lo haya creado, o forzando si no)
-      const success = await userService.updateProfile(userId, formData);
+      const success = await userService.updateProfile(userId, { ...formData, empresa_id: empresaId });
       if (!success) {
         console.error("Error actualizando perfil extendido");
         setError("Usuario de Auth creado, pero falló la creación del perfil detallado.");
@@ -83,7 +102,6 @@ export default function CrearUsuario() {
       `Perfil profesional creado correctamente para ${formData.nombres}. Use la contraseña: ${formData.password}`
     )
     
-    // Reset form
     setFormData({
       email: "",
       password: "Pro" + Math.floor(100000 + Math.random() * 900000),
@@ -94,7 +112,7 @@ export default function CrearUsuario() {
       cmp: "",
       genero: "M",
       fecha_nacimiento: "",
-      role: "usuario"
+      role: "enfermeria"
     });
     setLoading(false)
   }
@@ -145,10 +163,11 @@ export default function CrearUsuario() {
               <div className="input-group">
                 <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '5px', display: 'block' }}>Rol del Usuario</label>
                 <select name="role" value={formData.role} onChange={handleInputChange}>
-                  <option value="usuario">Usuario Estándar</option>
                   <option value="medico">Médico / Especialista</option>
-                  <option value="rrhh">RRHH / Admin Local</option>
-                  <option value="admin">Administrador General</option>
+                  <option value="enfermeria">Enfermería</option>
+                  <option value="rrhh">RRHH</option>
+                  <option value="tecnico">Técnico</option>
+                  <option value="admin">Administrador Local</option>
                 </select>
               </div>
             </div>

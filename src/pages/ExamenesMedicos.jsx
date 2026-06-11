@@ -8,6 +8,7 @@ import {
 import logo from "../assets/logo.png"
 import ExcelJS from "exceljs"
 import { auditService } from "../services/auditService"
+import { useEmpresa } from "../context/EmpresaContext"
 
 const formatResultado = (res) => {
   if (!res) return "—"
@@ -21,6 +22,9 @@ const formatResultado = (res) => {
 }
 
 export default function ExamenesMedicos() {
+  const { empresaId } = useEmpresa()
+  console.log("=== COMPONENTE EXAMENES MEDICOS MONTADO ===")
+  console.log("empresaId recibido de useEmpresa:", empresaId)
   const [emos, setEmos] = useState([])
   const [openModal, setOpenModal] = useState(false)
   const [emoParaEditar, setEmoParaEditar] = useState(null)
@@ -148,10 +152,15 @@ const exportarExcel = async () => {
 }
 
   useEffect(() => {
-    fetchEmos()
-  }, [])
+    if (empresaId) {
+      fetchEmos()
+    } else {
+      setEmos([])
+    }
+  }, [empresaId])
 
   const fetchEmos = async () => {
+    console.log("fetchEmos llamado con empresaId:", empresaId)
     const { data, error } = await supabase
       .from("emos")
       .select(`
@@ -172,9 +181,15 @@ const exportarExcel = async () => {
           empresa
         )
       `)
+      .eq('empresa_id', empresaId)   // ← filtro empresa
       .order("fecha_vencimiento", { ascending: true })
 
-    if (!error) setEmos(data || [])
+    if (error) {
+      console.error("Error al obtener EMOs:", error)
+    } else {
+      console.log("EMOs obtenidos exitosamente:", data)
+      setEmos(data || [])
+    }
   }
 
   // ✅ ORDEN CORRECTO
@@ -205,11 +220,10 @@ const emosFiltrados = emosOrdenados.filter(e => {
   )
 })
 
-
   return (
     <div className="emo-page">
       <div className="emo-header">
-  <h2 className="emo-title">Exámenes Médicos Ocupacionales</h2>
+        <h2 className="emo-title">Exámenes Médicos Ocupacionales</h2>
 
   <div className="emo-toolbar">
     <input

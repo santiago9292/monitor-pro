@@ -2,14 +2,15 @@ import { Navigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabase"
 import { auditService } from "../services/auditService"
+import { useEmpresa } from "../context/EmpresaContext"
 
 export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [mustChangePassword, setMustChangePassword] = useState(false)
-  const [mustEnrollMFA, setMustEnrollMFA] = useState(false)
   const location = useLocation()
+  const { activeEmpresa } = useEmpresa()
 
   useEffect(() => {
     const checkSession = async () => {
@@ -20,7 +21,7 @@ export default function ProtectedRoute({ children }) {
         if (data.session?.user) {
           const { data: userProfile, error: profileError } = await supabase
             .from("profiles")
-            .select("password_set, role")
+            .select("password_set, role, status")
             .eq("id", data.session.user.id)
             .single()
 
@@ -28,18 +29,8 @@ export default function ProtectedRoute({ children }) {
             console.warn("No se pudo verificar el perfil:", profileError)
           } else {
             setProfile(userProfile)
-            
-            // Verificar si debe cambiar password
             if (userProfile.password_set === false) {
               setMustChangePassword(true)
-            }
-
-            // Verificar si debe enrolar MFA (admin y medico) - DESACTIVADO TEMPORALMENTE
-            if (false && ['admin', 'medico'].includes(userProfile.role)) {
-              const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
-              if (!mfaError && factors.all.filter(f => f.status === 'verified').length === 0) {
-                setMustEnrollMFA(true)
-              }
             }
           }
         }
@@ -52,9 +43,7 @@ export default function ProtectedRoute({ children }) {
 
     checkSession()
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
 
@@ -63,42 +52,39 @@ export default function ProtectedRoute({ children }) {
 
   // Rastreador de inactividad (10 minutos)
   useEffect(() => {
-    let timeoutId;
+    let timeoutId
 
     const logoutDueToInactivity = async () => {
       if (session) {
         try {
           await auditService.record({
-            action: 'LOGOUT',
-            module: 'Autenticación',
-            description: 'El usuario cerró sesión automáticamente por inactividad (10 minutos).'
-          });
-          await supabase.auth.signOut();
+            action: "LOGOUT",
+            module: "Autenticación",
+            description: "El usuario cerró sesión automáticamente por inactividad (10 minutos)."
+          })
+          await supabase.auth.signOut()
         } catch (error) {
-          console.error("Error al cerrar sesión por inactividad:", error);
+          console.error("Error al cerrar sesión por inactividad:", error)
         }
       }
-    };
+    }
 
     const resetTimer = () => {
-      clearTimeout(timeoutId);
-      // 10 minutos = 600,000 milisegundos
-      timeoutId = setTimeout(logoutDueToInactivity, 600000);
-    };
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(logoutDueToInactivity, 600000)
+    }
 
     if (session) {
-      resetTimer();
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-      const handleActivity = () => resetTimer();
-      
-      events.forEach(event => document.addEventListener(event, handleActivity));
-
+      resetTimer()
+      const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"]
+      const handleActivity = () => resetTimer()
+      events.forEach(event => document.addEventListener(event, handleActivity))
       return () => {
-        clearTimeout(timeoutId);
-        events.forEach(event => document.removeEventListener(event, handleActivity));
-      };
+        clearTimeout(timeoutId)
+        events.forEach(event => document.removeEventListener(event, handleActivity))
+      }
     }
-  }, [session]);
+  }, [session])
 
   if (loading) return null
 
@@ -106,19 +92,20 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />
   }
 
-  // Obligatoriedad de MFA (para admin y medico)
-  if (mustEnrollMFA && location.pathname !== "/seguridad") {
-    return <Navigate to="/seguridad" replace />
-  }
-
   // Obligar a cambio de password
   if (mustChangePassword && location.pathname !== "/cambiar-password") {
     return <Navigate to="/cambiar-password" replace />
   }
 
-  // RESTRICCIÓN DE ROLES: Solo admin puede entrar a /roles y /auditoria
-  const adminOnlyRoutes = ["/roles", "/auditoria"]
-  if (adminOnlyRoutes.includes(location.pathname) && profile?.role !== "admin") {
+  // Rutas exclusivas para super_admin
+  const superAdminRoutes = ["/super-admin/empresas", "/super-admin/personal"]
+  if (superAdminRoutes.includes(location.pathname) && profile?.role !== "super_admin") {
+    return <Navigate to="/" replace />
+  }
+
+  // Rutas de admin (admin local o super_admin)
+  const adminOnlyRoutes = ["/auditoria"]
+  if (adminOnlyRoutes.includes(location.pathname) && !["admin", "super_admin"].includes(profile?.role)) {
     console.warn("Acceso denegado: Se requiere rol de administrador.")
     return <Navigate to="/" replace />
   }

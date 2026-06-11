@@ -5,12 +5,14 @@ import { consentService } from '../services/consentService'
 import logo from '../assets/logo.png'
 import ModalRegistroTrabajador from '../components/ModalRegistroTrabajador'
 import ModalEvolucion from '../components/ModalEvolucion'
+import { useEmpresa } from '../context/EmpresaContext'
 
 
 function BusquedaSeguimiento() {
   /* =======================
      ESTADOS
   ======================= */
+  const { empresaId } = useEmpresa()
   const [dni, setDni] = useState('')
   const [trabajador, setTrabajador] = useState(null)
   const [mensaje, setMensaje] = useState('')
@@ -173,6 +175,7 @@ function BusquedaSeguimiento() {
       .from('trabajadores')
       .select('*')
       .eq('dni', dni)
+      .eq('empresa_id', empresaId)   // ← filtrar por empresa activa
       .maybeSingle()
 
     if (!data) {
@@ -266,7 +269,8 @@ function BusquedaSeguimiento() {
     recomendaciones,
     cie:             `${diagnostico.codigo} - ${diagnostico.descripcion}`,
     fecha:           new Date().toISOString(),
-    created_by_name: currentUserName || null
+    created_by_name: currentUserName || null,
+    empresa_id:      empresaId,   // ← multi-tenant
   })
 
   if (!error) {
@@ -388,7 +392,7 @@ function BusquedaSeguimiento() {
                   {trabajador.empresa?.endsWith(' (DE BAJA)') ? 'DE BAJA' : 'Paciente'}
                 </span>
                 <h3 style={{ margin: 0, fontSize: '17px' }}>
-                  {trabajador.nombres} {trabajador.apellidos}
+                  {`${trabajador.nombres || ''} ${trabajador.apellidos || ''}`.trim().toUpperCase()}
                 </h3>
               </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabase"
 import { auditService } from "../services/auditService"
 import ModalDescansoMedico from "../components/ModalDescansomedico"
+import { useEmpresa } from "../context/EmpresaContext"
 
 // 🧠 Estado clínico correcto (hora local Perú)
 const calcularEstado = (fechaInicio, fechaFin) => {
@@ -17,6 +18,7 @@ const calcularEstado = (fechaInicio, fechaFin) => {
 }
 
 function DescansosMedicos() {
+  const { empresaId } = useEmpresa()
   const [descansos, setDescansos] = useState([])
   const [cargando, setCargando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -45,6 +47,7 @@ function DescansosMedicos() {
           empresa
         )
       `)
+      .eq('empresa_id', empresaId)   // ← filtro empresa
       .order("fecha_inicio", { ascending: false })
 
     if (!error) setDescansos(data || [])
@@ -52,8 +55,12 @@ function DescansosMedicos() {
   }
 
   useEffect(() => {
-    cargarDescansos()
-  }, [])
+    if (empresaId) {
+      cargarDescansos()
+    } else {
+      setDescansos([])
+    }
+  }, [empresaId])
 
   return (
     <div className="page-container">
@@ -144,8 +151,7 @@ function DescansosMedicos() {
                   <tr key={d.id}>
                     <td>{d.trabajadores?.dni}</td>
                     <td>
-                      {d.trabajadores?.nombres}{" "}
-                      {d.trabajadores?.apellidos}
+                      {`${d.trabajadores?.nombres || ''} ${d.trabajadores?.apellidos || ''}`.trim().toUpperCase()}
                     </td>
                     <td>{d.fecha_inicio}</td>
                     <td>{d.fecha_fin}</td>

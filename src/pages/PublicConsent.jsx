@@ -75,23 +75,18 @@ export default function PublicConsent() {
           testigo_email: data.testigo_email
         }));
 
-        // Fetch worker details to pre-fill
-        if (data.dni) {
-          const { data: workerData } = await supabase
-            .from('trabajadores')
-            .select('*')
-            .eq('dni', data.dni)
-            .maybeSingle();
-          
-          if (workerData && isMounted) {
-            setFormData(prev => ({
-              ...prev,
-              nombre: (workerData.nombres || '').toUpperCase(),
-              apellidos: (workerData.apellidos || '').toUpperCase(),
-              cargo: (workerData.puesto || '').toUpperCase(),
-              empresa: (workerData.empresa || '').toUpperCase()
-            }));
-          }
+        // Fetch worker details to pre-fill using secure RPC
+        const { data: workerDetails } = await supabase
+          .rpc('get_worker_details_for_signing', { link_id: id });
+        
+        if (workerDetails && isMounted) {
+          setFormData(prev => ({
+            ...prev,
+            nombre: (workerDetails.nombres || '').toUpperCase(),
+            apellidos: (workerDetails.apellidos || '').toUpperCase(),
+            cargo: (workerDetails.puesto || '').toUpperCase(),
+            empresa: (workerDetails.empresa || '').toUpperCase()
+          }));
         }
       } catch (err) {
         console.error("Error loading link:", err);
@@ -144,15 +139,6 @@ export default function PublicConsent() {
 
       // 4. Marcar el link como firmado
       await consentService.markLinkAsSigned(id, pdfUrl);
-
-      // 5. Registro de auditoría (override user for public access)
-      await auditService.record({
-        action: 'CREATE',
-        module: 'Consentimientos',
-        description: `El trabajador ${formData.nombre} ${formData.apellidos} (DNI: ${formData.dni}) firmó su consentimiento de forma remota.`,
-        details: { dni: formData.dni, pdf_url: pdfUrl },
-        overrideUser: `Paciente (${formData.dni})`
-      });
 
       setSuccess(true);
     } catch (err) {

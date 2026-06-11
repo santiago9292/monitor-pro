@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
 import { auditService } from "../services/auditService"
 import ModalRegistroTrabajador from "./ModalRegistroTrabajador"
+import { useEmpresa } from "../context/EmpresaContext"
 
 const BUCKET = "emos"
 
 export default function ModalRegistroEMO({ abierto, onClose, onGuardado, emoParaEditar }) {
   const dniInputRef = useRef(null)
+  const { empresaId } = useEmpresa()
 
   const [dni, setDni] = useState("")
   const [trabajador, setTrabajador] = useState(null)
@@ -211,7 +213,8 @@ export default function ModalRegistroEMO({ abierto, onClose, onGuardado, emoPara
           fecha_vencimiento: fechaVencimiento,
           resultado,
           entidad_medica: entidadMedica,
-          observaciones
+          observaciones,
+          empresa_id: empresaId,   // ← multi-tenant
         })
         .select()
         .single()

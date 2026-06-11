@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
 import { auditService } from "../services/auditService"
 import ModalRegistroTrabajador from "./ModalRegistroTrabajador"
+import { useEmpresa } from "../context/EmpresaContext"
 
 const BUCKET = "descansos-medicos"
 
 export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
   const dniInputRef = useRef(null)
+  const { empresaId } = useEmpresa()
   
   const [dni, setDni] = useState("")
   const [trabajador, setTrabajador] = useState(null)
@@ -153,7 +155,8 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
         tipo,
         cie: cieSeleccionado.codigo,
         diagnostico: cieSeleccionado.descripcion,
-        observaciones
+        observaciones,
+        empresa_id: empresaId,   // ← multi-tenant
       })
       .select()
       .single()

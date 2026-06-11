@@ -231,7 +231,7 @@ export default function Roles() {
                         </button>
                         <button 
                           className="mp-roles-action-btn audit"
-                          onClick={() => window.location.href = `/auditoria?user=${user.email}`}
+                          onClick={() => navigate(`/auditoria?user=${user.email}`)}
                           title="Ver bitácora de acciones"
                           style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                         >

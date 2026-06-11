@@ -274,10 +274,7 @@ export const consentService = {
    */
   async getConsentLink(id) {
     const { data, error } = await supabase
-      .from('consent_links')
-      .select('*')
-      .eq('id', id)
-      .single();
+      .rpc('get_public_consent_link', { link_id: id });
       
     if (error) throw error;
     return data;
@@ -287,10 +284,8 @@ export const consentService = {
    * Marca un enlace como firmado
    */
   async markLinkAsSigned(id, pdfUrl) {
-    const { error } = await supabase
-      .from('consent_links')
-      .update({ signed: true, pdf_url: pdfUrl })
-      .eq('id', id);
+    const { data, error } = await supabase
+      .rpc('mark_public_consent_link_signed', { link_id: id, pdf_url_param: pdfUrl });
       
     if (error) throw error;
     return true;

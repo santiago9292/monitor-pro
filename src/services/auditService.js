@@ -44,7 +44,17 @@ export const auditService = {
         console.error('Audit: Error fetching IP address', err);
       }
 
-      // 3. Insertar en audit_logs
+      // 3. Obtener empresa_id activa desde sessionStorage (multi-tenant)
+      let empresaId = null;
+      try {
+        const saved = sessionStorage.getItem('mp_active_empresa');
+        if (saved) {
+          const empresa = JSON.parse(saved);
+          empresaId = empresa?.id || null;
+        }
+      } catch { /* ignorar */ }
+
+      // 4. Insertar en audit_logs
       const { error } = await supabase.from('audit_logs').insert({
         user_email: userEmail,
         user_name:  userName,
@@ -52,7 +62,8 @@ export const auditService = {
         module,
         description,
         ip_address: ip,
-        details
+        details,
+        empresa_id: empresaId,
       });
 
       if (error) throw error;

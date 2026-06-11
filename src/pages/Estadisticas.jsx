@@ -8,11 +8,13 @@ import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import logoEmpresa from '../assets/logo.png'
 import { auditService } from '../services/auditService'
+import { useEmpresa } from '../context/EmpresaContext'
 import '../App.css'
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9'];
 
 function Estadisticas() {
+  const { empresaId } = useEmpresa()
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [loading, setLoading] = useState(true)
@@ -32,8 +34,10 @@ function Estadisticas() {
   })
 
   useEffect(() => {
-    cargarTodo()
-  }, [])
+    if (empresaId) {
+      cargarTodo()
+    }
+  }, [empresaId])
 
   const cargarTodo = async () => {
     setLoading(true)
@@ -51,6 +55,7 @@ function Estadisticas() {
     let query = supabase
       .from('registros_medicos')
       .select('fecha, cie, trabajador_id, trabajadores(nombres, apellidos, dni, sexo)')
+      .eq('empresa_id', empresaId)   // ← filtro empresa
 
     if (desde) query = query.gte('fecha', desde)
     if (hasta) query = query.lte('fecha', hasta + 'T23:59:59')
@@ -99,6 +104,7 @@ function Estadisticas() {
     const { data: descansosData, error: dmError } = await supabase
       .from('descansos_medicos')
       .select('id, trabajadores!inner(empresa)')
+      .eq('empresa_id', empresaId)   // ← filtro empresa
       .gte('fecha_fin', today)
       .not('trabajadores.empresa', 'ilike', '%DE BAJA%')
 
@@ -108,6 +114,7 @@ function Estadisticas() {
     const { data: emosData, error: emosError } = await supabase
       .from('emos')
       .select('id, trabajadores!inner(empresa)')
+      .eq('empresa_id', empresaId)   // ← filtro empresa
       .lt('fecha_vencimiento', today)
       .not('trabajadores.empresa', 'ilike', '%DE BAJA%')
 
@@ -294,7 +301,7 @@ function Estadisticas() {
               <tbody>
                 {topPacientes.map((p, i) => (
                   <tr key={i}>
-                    <td>{p.nombre.split(' ')[0]} {p.nombre.split(' ').slice(-1)}</td>
+                    <td>{`${p.nombre.split(' ')[0]} ${p.nombre.split(' ').slice(-1)}`.toUpperCase()}</td>
                     <td style={{ color: '#64748b', fontSize: '10px' }}>{p.dni}</td>
                     <td><span className="badge" style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 6px', fontSize: '9px' }}>{p.total} v.</span></td>
                   </tr>
