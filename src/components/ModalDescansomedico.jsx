@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
+import { restQuery } from "../lib/supabaseRest"
 import { auditService } from "../services/auditService"
 import ModalRegistroTrabajador from "./ModalRegistroTrabajador"
 import { useEmpresa } from "../context/EmpresaContext"
@@ -57,7 +58,6 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
 
   if (!abierto) return null
 
-  /* 🔎 Buscar trabajador */
   const buscarTrabajador = async () => {
     if (dni.length < 8) {
       alert("Ingrese un DNI válido")
@@ -66,26 +66,9 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
 
     setBuscando(true)
 
-    // Timeout de 10s para detectar si Supabase se cuelga (ej: RLS recursivo)
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
-
     try {
-      const { data, error } = await supabase
-        .from("trabajadores")
-        .select("id, nombres, apellidos, dni, empresa")
-        .eq("dni", dni)
-        .maybeSingle()
-        .abortSignal(controller.signal)
-
-      clearTimeout(timeoutId)
-
-      if (error) {
-        console.error("Error buscando trabajador:", error)
-        alert(`Error al buscar trabajador: ${error.message}`)
-        setBuscando(false)
-        return
-      }
+      const arr = await restQuery(`trabajadores?dni=eq.${dni}&select=id,nombres,apellidos,dni,empresa`)
+      const data = arr[0] || null
 
       if (!data) {
         setTrabajador(null)
@@ -102,27 +85,18 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
         }
 
         // Consultar si tiene consentimiento firmado
-        const controller2 = new AbortController()
-        const timeoutId2 = setTimeout(() => controller2.abort(), 10000)
         try {
-          const { data: consentData } = await supabase
-            .from("consentimientos")
-            .select("id")
-            .eq("dni", data.dni)
-            .maybeSingle()
-            .abortSignal(controller2.signal)
-          clearTimeout(timeoutId2)
+          const consentArr = await restQuery(`consentimientos?dni=eq.${data.dni}&select=id`)
+          const consentData = consentArr[0] || null
           setTieneConsentimiento(!!consentData)
         } catch (e) {
-          clearTimeout(timeoutId2)
-          console.error("Timeout o error al verificar consentimiento:", e)
+          console.error("Error al verificar consentimiento:", e)
           setTieneConsentimiento(false)
         }
       }
     } catch (e) {
-      clearTimeout(timeoutId)
-      console.error("Timeout o error buscando trabajador:", e)
-      alert("La búsqueda tardó demasiado. Posible problema de permisos en la base de datos. Revise la consola.")
+      console.error("Error buscando trabajador:", e)
+      alert("Error al buscar trabajador. Revise la consola.")
     }
 
     setBuscando(false)

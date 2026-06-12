@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { auditService } from '../services/auditService'
 import { consentService } from '../services/consentService'
@@ -78,6 +78,7 @@ function BusquedaSeguimiento() {
     const t = setTimeout(() => buscarCie(cieQuery), 300)
     return () => clearTimeout(t)
   }, [cieQuery])
+
 
   /* =======================
      HELPERS
@@ -162,7 +163,9 @@ function BusquedaSeguimiento() {
   /* =======================
      BUSCAR TRABAJADOR
   ======================= */
-  const buscar = async () => {
+  // useCallback para que el effect de visibilitychange siempre tenga la ref actualizada
+  const buscar = useCallback(async () => {
+    console.log('🔵 buscar() iniciado, dni=', dni, 'empresaId=', empresaId)
     if (!/^\d{8}$/.test(dni)) {
       setMensaje('Ingrese un DNI válido de 8 dígitos')
       return
@@ -180,30 +183,37 @@ function BusquedaSeguimiento() {
     setHistorial([])
     setNoExiste(false)
 
-    let timeoutId = null
+    console.log('🟡 antes de la query a trabajadores')
 
     try {
-      // Promise.race: si la query de Supabase demora más de 10s, la cancelamos en el cliente
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 10000)
-      })
-
-      const queryPromise = (async () => {
-        return await supabase
-          .from('trabajadores')
-          .select('*')
-          .eq('dni', dni)
-          .eq('empresa_id', empresaId)
-          .maybeSingle()
-      })()
-
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
-
-      // Limpiar timeout de inmediato tras resolver
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = null
+      console.log('🟢 ejecutando query (fetch crudo)...')
+      // Workaround: supabase.auth.getSession() se cuelga indefinidamente en la
+      // segunda llamada tras un cambio de visibilidad de pestaña (bug de gotrue-js,
+      // promesa de inicialización cacheada que queda in-flight). Leemos el token
+      // directamente de localStorage, que es donde GoTrue lo persiste.
+      const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]
+      const storageKey = `sb-${projectRef}-auth-token`
+      let access_token = null
+      try {
+        const raw = localStorage.getItem(storageKey)
+        const parsed = raw ? JSON.parse(raw) : null
+        access_token = parsed?.access_token || null
+      } catch (e) {
+        console.warn('No se pudo leer la sesión de localStorage:', e)
       }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/trabajadores?dni=eq.${dni}&empresa_id=eq.${empresaId}&select=*`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${access_token}`,
+          }
+        }
+      )
+      const dataArr = await res.json()
+      console.log('🟣 fetch crudo resuelto:', dataArr)
+      const data = dataArr[0] || null
+      const error = null
 
       if (error) {
         console.error('Error buscando trabajador:', error)
@@ -234,19 +244,12 @@ function BusquedaSeguimiento() {
         }).catch(err => console.warn('Audit VIEW error:', err))
       }
     } catch (e) {
-      console.error('buscar() error/timeout:', e.message)
-      if (e.message === 'TIMEOUT') {
-        setMensaje('⏱ La búsqueda tardó demasiado. Problema de conexión o permisos de base de datos.')
-      } else {
-        setMensaje(`Error inesperado: ${e.message}`)
-      }
+      console.error('buscar() error:', e.message)
+      setMensaje(`Error inesperado: ${e.message}`)
     } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
       setCargando(false)
     }
-  }
+  }, [dni, empresaId, currentUserEmail])
 
 
   /* =======================
@@ -484,8 +487,14 @@ function BusquedaSeguimiento() {
                   <button
                     className="btn-accion btn-accion--teal"
                     onClick={() => {
-                      const win = window.open(consentimiento.pdf_url, '_blank');
-                      if (win) win.focus();
+                      // Usamos <a> con noopener para evitar el lock de GoTrue entre pestañas
+                      const a = document.createElement('a');
+                      a.href = consentimiento.pdf_url;
+                      a.target = '_blank';
+                      a.rel = 'noopener noreferrer';
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
                       // Fire-and-forget SIN getSession() (evita lock de GoTrue)
                       auditService.record({
                         action: 'DOWNLOAD',

@@ -238,16 +238,27 @@ export const consentService = {
    * Busca consentimiento por DNI.
    */
   async getConsentByDni(dni) {
-    const { data, error } = await supabase
-      .from('consentimientos')
-      .select('*')
-      .eq('dni', dni)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    
-    if (error) return null;
-    return data;
+    try {
+      const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]
+      const storageKey = `sb-${projectRef}-auth-token`
+      const raw = localStorage.getItem(storageKey)
+      const parsed = raw ? JSON.parse(raw) : null
+      const access_token = parsed?.access_token || null
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/consentimientos?dni=eq.${dni}&order=created_at.desc&limit=1&select=*`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${access_token}`,
+          }
+        }
+      )
+      const arr = await res.json()
+      return Array.isArray(arr) ? (arr[0] || null) : null
+    } catch (e) {
+      return null
+    }
   },
 
   /**

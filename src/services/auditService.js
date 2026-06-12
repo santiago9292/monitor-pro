@@ -16,19 +16,30 @@ export const auditService = {
       let userName  = null;
 
       if (!userEmail) {
-        // getSession() lee de localStorage (sin red) → no causa 401
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
+        // Workaround: supabase.auth.getSession() se cuelga indefinidamente tras un
+        // cambio de visibilidad de pestaña (bug de gotrue-js). Leemos el token
+        // directamente de localStorage, que es donde GoTrue lo persiste.
+        const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]
+        const storageKey = `sb-${projectRef}-auth-token`
+        let parsed = null
+        try {
+          const raw = localStorage.getItem(storageKey)
+          parsed = raw ? JSON.parse(raw) : null
+        } catch (e) {
+          console.warn('Audit: No se pudo leer la sesión de localStorage:', e)
+        }
+        const sessionUser = parsed?.user || null
+        if (!sessionUser) {
           console.warn('Audit: Intent to record without an authenticated user.');
           return;
         }
-        userEmail = session.user.email;
+        userEmail = sessionUser.email;
 
         // Buscar nombre completo en profiles
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, nombres, apellidos')
-          .eq('id', session.user.id)
+          .eq('id', sessionUser.id)
           .single();
         if (profile) {
           userName = profile.full_name || `${profile.nombres} ${profile.apellidos}`.trim();

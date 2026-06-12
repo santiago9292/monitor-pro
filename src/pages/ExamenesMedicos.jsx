@@ -315,14 +315,21 @@ const emosFiltrados = emosOrdenados.filter(e => {
                 <td>
                   {e.archivo_url ? (
                     <button
-                      onClick={async () => {
-                        window.open(e.archivo_url, '_blank');
-                        await auditService.record({
+                      onClick={() => {
+                        // Usamos <a> con noopener para evitar el lock de GoTrue entre pestañas
+                        const a = document.createElement('a');
+                        a.href = e.archivo_url;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        auditService.record({
                           action: 'VIEW',
                           module: 'Exámenes Médicos',
                           description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                           details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
-                        });
+                        }).catch(err => console.warn('Audit VIEW error:', err));
                       }}
                       className="btn-ver"
                       style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
@@ -336,14 +343,20 @@ const emosFiltrados = emosOrdenados.filter(e => {
                 <td>
                   {e.legajo_url ? (
                     <button
-                      onClick={async () => {
-                        window.open(e.legajo_url, '_blank');
-                        await auditService.record({
+                      onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = e.legajo_url;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        auditService.record({
                           action: 'VIEW',
                           module: 'Exámenes Médicos',
                           description: `Visualizó el Legajo Completo de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                           details: { dni: e.trabajadores?.dni, legajo_url: e.legajo_url }
-                        });
+                        }).catch(err => console.warn('Audit VIEW error:', err));
                       }}
                       className="btn-ver"
                       style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
@@ -357,14 +370,20 @@ const emosFiltrados = emosOrdenados.filter(e => {
                 <td>
                   {e.informe_medico_url ? (
                     <button
-                      onClick={async () => {
-                        window.open(e.informe_medico_url, '_blank');
-                        await auditService.record({
+                      onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = e.informe_medico_url;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        auditService.record({
                           action: 'VIEW',
                           module: 'Exámenes Médicos',
                           description: `Visualizó el Informe Médico de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                           details: { dni: e.trabajadores?.dni, informe_medico_url: e.informe_medico_url }
-                        });
+                        }).catch(err => console.warn('Audit VIEW error:', err));
                       }}
                       className="btn-ver"
                       style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
@@ -404,14 +423,20 @@ const emosFiltrados = emosOrdenados.filter(e => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: '8px' }}>
               {e.archivo_url ? (
                 <button
-                  onClick={async () => {
-                    window.open(e.archivo_url, '_blank');
-                    await auditService.record({
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = e.archivo_url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    auditService.record({
                       action: 'VIEW',
                       module: 'Exámenes Médicos',
                       description: `Visualizó el archivo EMO de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                       details: { dni: e.trabajadores?.dni, archivo_url: e.archivo_url }
-                    });
+                    }).catch(err => console.warn('Audit VIEW error:', err));
                   }}
                   className="btn-ver"
                   style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
@@ -424,14 +449,20 @@ const emosFiltrados = emosOrdenados.filter(e => {
 
               {e.legajo_url ? (
                 <button
-                  onClick={async () => {
-                    window.open(e.legajo_url, '_blank');
-                    await auditService.record({
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = e.legajo_url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    auditService.record({
                       action: 'VIEW',
                       module: 'Exámenes Médicos',
                       description: `Visualizó el Legajo Completo de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                       details: { dni: e.trabajadores?.dni, legajo_url: e.legajo_url }
-                    });
+                    }).catch(err => console.warn('Audit VIEW error:', err));
                   }}
                   className="btn-ver"
                   style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}
@@ -444,14 +475,20 @@ const emosFiltrados = emosOrdenados.filter(e => {
 
               {e.informe_medico_url ? (
                 <button
-                  onClick={async () => {
-                    window.open(e.informe_medico_url, '_blank');
-                    await auditService.record({
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = e.informe_medico_url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    auditService.record({
                       action: 'VIEW',
                       module: 'Exámenes Médicos',
                       description: `Visualizó el Informe Médico de: ${e.trabajadores?.nombres} ${e.trabajadores?.apellidos} (DNI: ${e.trabajadores?.dni})`,
                       details: { dni: e.trabajadores?.dni, informe_medico_url: e.informe_medico_url }
-                    });
+                    }).catch(err => console.warn('Audit VIEW error:', err));
                   }}
                   className="btn-ver"
                   style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline' }}

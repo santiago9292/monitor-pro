@@ -181,7 +181,16 @@ export default function SendConsent() {
                   Este trabajador ya ha firmado un consentimiento previamente.
                 </p>
                 <button
-                  onClick={() => window.open(existingConsent.pdf_url, '_blank')}
+                  onClick={() => {
+                    // Usamos <a> con noopener para evitar el lock de GoTrue entre pestañas
+                    const a = document.createElement('a');
+                    a.href = existingConsent.pdf_url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
                   style={{
                     width: '100%',
                     padding: '10px',

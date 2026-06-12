@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabase"
+import { restQuery } from "../lib/supabaseRest"
 import { auditService } from "../services/auditService"
 import ModalDescansoMedico from "../components/ModalDescansomedico"
 import { useEmpresa } from "../context/EmpresaContext"
@@ -29,29 +30,16 @@ function DescansosMedicos() {
   const cargarDescansos = async () => {
     setCargando(true)
 
-    const { data, error } = await supabase
-      .from("descansos_medicos")
-      .select(`
-        id,
-        fecha_inicio,
-        fecha_fin,
-        dias,
-        tipo,
-        cie,
-        diagnostico,
-        archivo_url,
-        trabajadores (
-          nombres,
-          apellidos,
-          dni,
-          empresa
-        )
-      `)
-      .eq('empresa_id', empresaId)   // ← filtro empresa
-      .order("fecha_inicio", { ascending: false })
-
-    if (!error) setDescansos(data || [])
-    setCargando(false)
+    try {
+      const data = await restQuery(
+        `descansos_medicos?select=id,fecha_inicio,fecha_fin,dias,tipo,cie,diagnostico,archivo_url,trabajadores(nombres,apellidos,dni,empresa)&empresa_id=eq.${empresaId}&order=fecha_inicio.desc`
+      )
+      setDescansos(data || [])
+    } catch (error) {
+      console.error("Error cargando descansos:", error)
+    } finally {
+      setCargando(false)
+    }
   }
 
   useEffect(() => {
@@ -178,14 +166,21 @@ function DescansosMedicos() {
                     <td>
                       {d.archivo_url ? (
                         <button
-                          onClick={async () => {
-                            window.open(d.archivo_url, '_blank');
-                            await auditService.record({
+                          onClick={() => {
+                            // Usamos <a> con noopener para evitar el lock de GoTrue entre pestañas
+                            const a = document.createElement('a');
+                            a.href = d.archivo_url;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            auditService.record({
                               action: 'VIEW',
                               module: 'Descansos Médicos',
                               description: `Visualizó el descanso médico de: ${d.trabajadores?.nombres} ${d.trabajadores?.apellidos} (DNI: ${d.trabajadores?.dni})`,
                               details: { dni: d.trabajadores?.dni, archivo_url: d.archivo_url }
-                            });
+                            }).catch(err => console.warn('Audit VIEW error:', err));
                           }}
                           style={{ border: 'none', cursor: 'pointer', background: 'none', padding: 0, color: '#2563eb', textDecoration: 'underline', font: 'inherit' }}
                         >
