@@ -47,7 +47,7 @@ export default function Navbar() {
 
   const isSuperAdmin = role === 'super_admin'
   const isAdmin = role === 'admin'
-  const canSwitchEmpresa = role === 'medico' && empresasDisponibles.length > 1
+  const canSwitchEmpresa = role !== 'super_admin' && empresasDisponibles.length > 1
 
   return (
     <nav className="navbar">
@@ -84,13 +84,13 @@ export default function Navbar() {
               padding: '4px 10px',
               flexShrink: 0
             }}>
-              <div style={{ color: '#94a3b8', fontSize: '0.55rem', fontWeight: '700' }}>version 1.5.04</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem', fontWeight: '700' }}>version 1.6.0</div>
               <div style={{ color: '#1e293b', fontWeight: '800' }}>
                 {profile ? (profile.full_name || profile.nombres || profile.email) : 'Cargando...'}
               </div>
             </div>
           ) : (
-            (activeEmpresa || (role === 'medico' && empresasDisponibles.length > 0)) && (
+            (activeEmpresa || (role !== 'super_admin' && empresasDisponibles.length > 0)) && (
               <div
                 className="navbar-empresa-info-block"
                 style={{
@@ -113,7 +113,7 @@ export default function Navbar() {
                 onClick={() => canSwitchEmpresa && setShowEmpresaMenu(prev => !prev)}
                 title={canSwitchEmpresa ? 'Click para cambiar empresa' : ''}
               >
-                <div style={{ color: '#94a3b8', fontSize: '0.55rem', fontWeight: '700' }}>version 1.5.04</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.55rem', fontWeight: '700' }}>version 1.6.0</div>
                 <div style={{ color: '#1e293b', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   🏢 {activeEmpresa ? activeEmpresa.nombre : 'Sin Empresa'} {canSwitchEmpresa && <span style={{ fontSize: '8px' }}>▼</span>}
                 </div>
@@ -143,7 +143,12 @@ export default function Navbar() {
                     {empresasDisponibles.map(emp => (
                       <button
                         key={emp.id}
-                        onClick={() => {
+                        onClick={async () => {
+                          try {
+                            await supabase.rpc('set_active_empresa', { p_empresa_id: emp.id })
+                          } catch (err) {
+                            console.error("Error setting active empresa:", err)
+                          }
                           setActiveEmpresa(emp)
                           setShowEmpresaMenu(false)
                           window.location.reload()

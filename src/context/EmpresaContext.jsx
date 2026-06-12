@@ -48,38 +48,31 @@ export function EmpresaProvider({ children }) {
         return data || []
       }
 
-      if (role === 'medico') {
-        const asignaciones = await restQuery(`medico_empresas?select=empresa_id,empresas(*)&medico_id=eq.${userId}&activo=eq.true`)
+      // Para todos los demás roles (medico, admin, enfermeria, rrhh, tecnico)
+      // Primero intentamos consultar la tabla N:M medico_empresas
+      const asignaciones = await restQuery(`medico_empresas?select=empresa_id,empresas(*)&medico_id=eq.${userId}&activo=eq.true`)
 
-        const empresas = (asignaciones || [])
-          .map(a => a.empresas)
-          .filter(Boolean)
-          .filter(e => e.activa)
+      let empresas = (asignaciones || [])
+        .map(a => a.empresas)
+        .filter(Boolean)
+        .filter(e => e.activa)
 
-        setEmpresasDisponibles(empresas)
-        return empresas
+      // Fallback para compatibilidad heredada: si no hay asignaciones N:M, consultar profiles.empresa_id
+      if (empresas.length === 0) {
+        const profileArr = await restQuery(`profiles?select=empresa_id&id=eq.${userId}`)
+        const profile = profileArr[0] || null
+
+        if (profile?.empresa_id) {
+          const empresaArr = await restQuery(`empresas?select=*&id=eq.${profile.empresa_id}`)
+          const empresa = empresaArr[0] || null
+          if (empresa && empresa.activa) {
+            empresas = [empresa]
+          }
+        }
       }
 
-      // Para admin, enfermeria, rrhh, tecnico — su única empresa
-      // Usamos 2 queries separadas para evitar el bug 406 del subrequest PostgREST
-      const profileArr = await restQuery(`profiles?select=empresa_id&id=eq.${userId}`)
-      const profile = profileArr[0] || null
-
-      if (!profile?.empresa_id) {
-        setEmpresasDisponibles([])
-        return []
-      }
-
-      const empresaArr = await restQuery(`empresas?select=*&id=eq.${profile.empresa_id}`)
-      const empresa = empresaArr[0] || null
-
-      if (empresa) {
-        setEmpresasDisponibles([empresa])
-        return [empresa]
-      }
-
-      setEmpresasDisponibles([])
-      return []
+      setEmpresasDisponibles(empresas)
+      return empresas
     } catch (err) {
       console.error('Error loading empresas:', err)
       setEmpresasDisponibles([])

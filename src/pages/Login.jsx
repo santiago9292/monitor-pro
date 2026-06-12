@@ -131,44 +131,24 @@ export default function Login() {
       // super_admin: no requiere código de empresa. Carga todas las empresas.
       if (role === "super_admin") {
         const empresas = await loadEmpresasForUser(userId, role)
+        let empToActive = null
         if (empresaData) {
-          setActiveEmpresa(empresaData)
+          empToActive = empresaData
         } else if (empresas.length === 1) {
-          setActiveEmpresa(empresas[0])
+          empToActive = empresas[0]
+        }
+
+        if (empToActive) {
+          const { error: activeErr } = await supabase.rpc('set_active_empresa', { p_empresa_id: empToActive.id })
+          if (activeErr) console.warn("Error setting active empresa for super_admin:", activeErr)
+          setActiveEmpresa(empToActive)
         }
         await registrarLoginAudit(email)
         navigate("/")
         return
       }
 
-      // Para médico: verificar acceso a la empresa indicada
-      if (role === "medico") {
-        if (!empresaData) {
-          setError("Los médicos deben ingresar un código de empresa.")
-          await supabase.auth.signOut()
-          setLoading(false)
-          return
-        }
-
-        const asignacionArr = await restQuery(`medico_empresas?select=id&medico_id=eq.${userId}&empresa_id=eq.${empresaData.id}&activo=eq.true`)
-        const asignacion = asignacionArr[0] || null
-
-        if (!asignacion) {
-          setError("No tiene acceso asignado a la empresa " + empresaData.nombre + ".")
-          await supabase.auth.signOut()
-          setLoading(false)
-          return
-        }
-
-        // Cargar todas las empresas del médico para posible switch posterior
-        const todasEmpresas = await loadEmpresasForUser(userId, role)
-        setActiveEmpresa(empresaData)
-        await registrarLoginAudit(email)
-        navigate("/")
-        return
-      }
-
-      // Para admin, enfermeria, rrhh, tecnico: verificar que el código coincida con su empresa
+      // Para todos los roles que no sean super_admin: verificar que el código corresponda a una empresa activa
       if (!empresaData) {
         setError("Debe ingresar el código de empresa.")
         await supabase.auth.signOut()
@@ -176,14 +156,24 @@ export default function Login() {
         return
       }
 
-      const profileArr = await restQuery(`profiles?select=empresa_id&id=eq.${userId}`)
-      const profile = profileArr[0] || null
+      const asignacionArr = await restQuery(`medico_empresas?select=id&medico_id=eq.${userId}&empresa_id=eq.${empresaData.id}&activo=eq.true`)
+      const asignacion = asignacionArr[0] || null
 
-      if (profile?.empresa_id !== empresaData.id) {
-        setError("El código de empresa no corresponde a su cuenta.")
+      if (!asignacion) {
+        setError("No tiene acceso asignado a la empresa " + empresaData.nombre + ".")
         await supabase.auth.signOut()
         setLoading(false)
         return
+      }
+
+      // Cargar todas las empresas del usuario para posible switch posterior
+      const todasEmpresas = await loadEmpresasForUser(userId, role)
+
+      // Guardar la empresa de la sesión activa en el perfil del usuario para RLS
+      const { error: activeErr } = await supabase.rpc('set_active_empresa', { p_empresa_id: empresaData.id })
+      if (activeErr) {
+        console.error('Error al establecer empresa activa en base de datos:', activeErr)
+        throw new Error('Error al inicializar sesión de empresa: ' + activeErr.message)
       }
 
       setActiveEmpresa(empresaData)

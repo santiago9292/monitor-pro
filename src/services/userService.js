@@ -38,8 +38,7 @@ export const userService = {
       const apellidosUpper = data.apellidos ? data.apellidos.trim().toUpperCase() : '';
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
+        .update({
           nombres: nombresUpper,
           apellidos: apellidosUpper,
           full_name: `${nombresUpper} ${apellidosUpper}`.trim(),
@@ -52,12 +51,13 @@ export const userService = {
           role: data.role,
           empresa_id: data.empresa_id || null,   // ← multi-tenant
           updated_at: new Date().toISOString()
-        });
+        })
+        .eq('id', userId);
       
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error in upsertProfile:', error.message);
+      console.error('Error in updateProfile:', error.message);
       return false;
     }
   },

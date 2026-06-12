@@ -174,26 +174,17 @@ export default function AsignarPersonal() {
   const handleOpenEdit = (user) => {
     setEditUser(user)
     setMsg({ type: '', text: '' })
-    // Inicializar empresas seleccionadas
-    if (user.role === 'medico') {
-      const asignadas = medico_empresas.filter(m => m.medico_id === user.id && m.activo).map(m => m.empresa_id)
-      setEditEmpresasSeleccionadas(asignadas)
-    } else {
-      setEditEmpresasSeleccionadas(user.empresa_id ? [user.empresa_id] : [])
-    }
+    // Inicializar empresas seleccionadas desde medico_empresas para todos los roles
+    const asignadas = medico_empresas.filter(m => m.medico_id === user.id && m.activo).map(m => m.empresa_id)
+    setEditEmpresasSeleccionadas(asignadas)
   }
 
   const handleToggleEmpresaSeleccion = (empresaId) => {
-    const esMultiple = editUser?.role === 'medico' || editUser?.role === 'super_admin'
-    if (esMultiple) {
-      setEditEmpresasSeleccionadas(prev =>
-        prev.includes(empresaId)
-          ? prev.filter(id => id !== empresaId)
-          : [...prev, empresaId]
-      )
-    } else {
-      setEditEmpresasSeleccionadas([empresaId])
-    }
+    setEditEmpresasSeleccionadas(prev =>
+      prev.includes(empresaId)
+        ? prev.filter(id => id !== empresaId)
+        : [...prev, empresaId]
+    )
   }
 
   const handleSave = async () => {
@@ -204,66 +195,46 @@ export default function AsignarPersonal() {
     try {
       const role = editUser.role
 
-      if (role === 'medico') {
-        // Para médicos: gestionar medico_empresas (N:M)
-        // 1. Desactivar todas las relaciones actuales
-        const { error: deactivateErr } = await supabase
-          .from('medico_empresas').update({ activo: false }).eq('medico_id', editUser.id)
-        if (deactivateErr) throw new Error('Error al desactivar asignaciones: ' + deactivateErr.message)
+      // 1. Desactivar todas las relaciones actuales en medico_empresas
+      const { error: deactivateErr } = await supabase
+        .from('medico_empresas').update({ activo: false }).eq('medico_id', editUser.id)
+      if (deactivateErr) throw new Error('Error al desactivar asignaciones: ' + deactivateErr.message)
 
-        // 2. Insertar o reactivar las seleccionadas
-        for (const empresaId of editEmpresasSeleccionadas) {
-          const existingArr = await restQuery(`medico_empresas?select=id&medico_id=eq.${editUser.id}&empresa_id=eq.${empresaId}`)
-          const existing = existingArr[0] || null
+      // 2. Insertar o reactivar las seleccionadas
+      for (const empresaId of editEmpresasSeleccionadas) {
+        const existingArr = await restQuery(`medico_empresas?select=id&medico_id=eq.${editUser.id}&empresa_id=eq.${empresaId}`)
+        const existing = existingArr[0] || null
 
-          if (existing) {
-            const { error: reactivateErr } = await supabase
-              .from('medico_empresas').update({ activo: true }).eq('id', existing.id)
-            if (reactivateErr) throw new Error('Error al reactivar asignación: ' + reactivateErr.message)
-          } else {
-            const { error: insertErr } = await supabase
-              .from('medico_empresas').insert({ medico_id: editUser.id, empresa_id: empresaId })
-            if (insertErr) throw new Error('Error al asignar empresa: ' + insertErr.message)
-          }
+        if (existing) {
+          const { error: reactivateErr } = await supabase
+            .from('medico_empresas').update({ activo: true }).eq('id', existing.id)
+          if (reactivateErr) throw new Error('Error al reactivar asignación: ' + reactivateErr.message)
+        } else {
+          const { error: insertErr } = await supabase
+            .from('medico_empresas').insert({ medico_id: editUser.id, empresa_id: empresaId })
+          if (insertErr) throw new Error('Error al asignar empresa: ' + insertErr.message)
         }
-
-        // Actualizar rol si cambió (via RPC para evitar recursión RLS)
-        if (editUser.role !== editUser._originalRole) {
-          const { error: roleErr } = await supabase.rpc('admin_update_profile', {
-            target_user_id: editUser.id,
-            update_data: { role: editUser.role }
-          })
-          if (roleErr) throw new Error('Error al cambiar rol: ' + roleErr.message)
-        }
-
-        await auditService.record({
-          action: 'UPDATE', module: 'Asignación de Personal',
-          description: `Actualizó empresas del médico ${editUser.full_name || editUser.email}: ${editEmpresasSeleccionadas.length} empresa(s) asignada(s).`
-        })
-      } else {
-        // Para otros roles: actualizar via RPC (evita recursión RLS en profiles)
-        const nuevaEmpresaId = editEmpresasSeleccionadas[0] || null
-        const updateData = { empresa_id: nuevaEmpresaId }
-
-        if (editUser.role !== editUser._originalRole) {
-          updateData.role = editUser.role
-        }
-
-        const { error: updateErr } = await supabase.rpc('admin_update_profile', {
-          target_user_id: editUser.id,
-          update_data: updateData
-        })
-
-        if (updateErr) {
-          console.error('Error Supabase al actualizar perfil:', updateErr)
-          throw new Error('Error al actualizar perfil: ' + updateErr.message)
-        }
-
-        await auditService.record({
-          action: 'UPDATE', module: 'Asignación de Personal',
-          description: `Configuró al usuario ${editUser.full_name || editUser.email}: rol="${ROLE_LABELS[editUser.role]}", empresa="${getEmpresaNombre(nuevaEmpresaId)}".`
-        })
       }
+
+      // 3. Sincronizar profiles.empresa_id con la primera empresa de editEmpresasSeleccionadas como fallback legacy
+      const nuevaEmpresaId = editEmpresasSeleccionadas[0] || null
+      const updateData = { empresa_id: nuevaEmpresaId }
+      updateData.role = editUser.role
+
+      const { error: updateErr } = await supabase.rpc('admin_update_profile', {
+        target_user_id: editUser.id,
+        update_data: updateData
+      })
+
+      if (updateErr) {
+        console.error('Error Supabase al actualizar perfil:', updateErr)
+        throw new Error('Error al actualizar perfil: ' + updateErr.message)
+      }
+
+      await auditService.record({
+        action: 'UPDATE', module: 'Asignación de Personal',
+        description: `Configuró al usuario ${editUser.full_name || editUser.email}: rol="${ROLE_LABELS[editUser.role]}", empresas asignadas=${editEmpresasSeleccionadas.length}.`
+      })
 
       setMsg({ type: 'ok', text: 'Cambios guardados correctamente.' })
       await loadAll()
@@ -345,8 +316,9 @@ export default function AsignarPersonal() {
                 <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Sin resultados.</td></tr>
               ) : profilesFiltrados.map(user => {
                 const rolColor = ROLE_COLORS[user.role] || ROLE_COLORS.rrhh
-                const empresasAsignadas = user.role === 'medico'
-                  ? getMedicoEmpresas(user.id).map(m => empresas.find(e => e.id === m.empresa_id)).filter(Boolean)
+                const asignaciones = getMedicoEmpresas(user.id)
+                const empresasAsignadas = asignaciones.length > 0
+                  ? asignaciones.map(m => empresas.find(e => e.id === m.empresa_id)).filter(Boolean)
                   : user.empresa_id ? [empresas.find(e => e.id === user.empresa_id)].filter(Boolean) : []
 
                 return (
@@ -448,7 +420,7 @@ export default function AsignarPersonal() {
             {/* EMPRESAS — Buscador con chips */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>
-                {editUser.role === 'medico' ? 'Empresas que puede atender (múltiple)' : 'Empresa asignada'}
+                Empresas asignadas (múltiple)
               </label>
 
               {/* Chips de empresas seleccionadas */}
@@ -476,7 +448,7 @@ export default function AsignarPersonal() {
                           marginLeft: '8px', flexShrink: 0
                         }}>{emp.codigo}</span>
                         <button
-                          type="button"
+                           type="button"
                           onClick={() => handleToggleEmpresaSeleccion(empId)}
                           style={{
                             background: 'none', border: 'none', color: '#93c5fd',
@@ -497,7 +469,7 @@ export default function AsignarPersonal() {
                 empresas={empresas}
                 seleccionadas={editEmpresasSeleccionadas}
                 onSelect={(empId) => handleToggleEmpresaSeleccion(empId)}
-                multiple={editUser.role === 'medico' || editUser.role === 'super_admin'}
+                multiple={true}
               />
             </div>
 
