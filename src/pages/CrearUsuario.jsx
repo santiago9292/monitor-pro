@@ -5,7 +5,8 @@ import { auditService } from "../services/auditService"
 import { userService } from "../services/userService"
 import { useEmpresa } from "../context/EmpresaContext"
 
-// Inicializar el cliente temporal una sola vez fuera del componente para evitar advertencias de múltiples instancias
+// Cliente secundario con storageKey ÚNICO para evitar el conflicto
+// "Multiple GoTrueClient instances" que bloquea todas las queries.
 const tempSupabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -14,6 +15,7 @@ const tempSupabase = createClient(
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
+      storageKey: 'mp-temp-admin-auth', // ← clave única, no colisiona con el cliente principal
       storage: {
         getItem: () => null,
         setItem: () => {},

@@ -208,12 +208,13 @@ export default function Login() {
     }
   }
 
-  const registrarLoginAudit = async (userEmail) => {
-    await auditService.record({
+  const registrarLoginAudit = (userEmail) => {
+    // Fire-and-forget: no bloqueamos la navegación por el registro de auditoría
+    auditService.record({
       action: "LOGIN",
       module: "Autenticación",
       description: `El usuario ${userEmail} inició sesión en el sistema.`
-    })
+    }).catch(err => console.warn("Audit login error:", err));
   }
 
   // ── RENDER ───────────────────────────────────────────────────────

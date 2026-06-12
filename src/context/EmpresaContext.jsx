@@ -68,15 +68,27 @@ export function EmpresaProvider({ children }) {
       }
 
       // Para admin, enfermeria, rrhh, tecnico — su única empresa
+      // Usamos 2 queries separadas para evitar el bug 406 del subrequest PostgREST
       const { data: profile } = await supabase
         .from('profiles')
-        .select('empresa_id, empresas(*)')
+        .select('empresa_id')
         .eq('id', userId)
         .single()
 
-      if (profile?.empresas) {
-        setEmpresasDisponibles([profile.empresas])
-        return [profile.empresas]
+      if (!profile?.empresa_id) {
+        setEmpresasDisponibles([])
+        return []
+      }
+
+      const { data: empresa } = await supabase
+        .from('empresas')
+        .select('*')
+        .eq('id', profile.empresa_id)
+        .single()
+
+      if (empresa) {
+        setEmpresasDisponibles([empresa])
+        return [empresa]
       }
 
       setEmpresasDisponibles([])
@@ -110,9 +122,11 @@ export function EmpresaProvider({ children }) {
     initSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // TOKEN_REFRESHED se dispara en descargas de Storage — ignorar para no re-cargar empresas
       if (event === 'SIGNED_OUT') {
         clearEmpresa()
       } else if (event === 'SIGNED_IN' && session?.user) {
+        // Solo re-cargar en SIGNED_IN real (primer login), no en refresco de token
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -123,6 +137,7 @@ export function EmpresaProvider({ children }) {
           await loadEmpresasForUser(session.user.id, profile.role)
         }
       }
+      // INITIAL_SESSION, TOKEN_REFRESHED, USER_UPDATED → no hacer nada adicional
     })
     return () => subscription.unsubscribe()
   }, [])

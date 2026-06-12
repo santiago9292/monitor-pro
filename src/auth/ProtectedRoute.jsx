@@ -44,7 +44,11 @@ export default function ProtectedRoute({ children }) {
     checkSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+      // Solo actualizar en eventos relevantes para evitar re-renders por TOKEN_REFRESHED
+      // TOKEN_REFRESHED se dispara en descargas de Storage y refresco automático del JWT
+      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+        setSession(session)
+      }
     })
 
     return () => subscription.unsubscribe()

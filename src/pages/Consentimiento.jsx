@@ -146,7 +146,14 @@ export default function Consentimiento() {
     try {
       // 1. Generar el PDF Blob
       const pdfBlob = await consentService.generatePDF(formData, signature, photo, logo);
-      
+
+      // 2. Convertir imágenes para Storage
+      const signatureFile = consentService.base64ToFile(signature, 'signature.png', 'image/png');
+      const photoFile = consentService.base64ToFile(photo, 'selfie.jpg', 'image/jpeg');
+
+      // 3. Guardar todo en Supabase (usando el blob original directamente)
+      const pdfUrl = await consentService.saveConsent(formData, signatureFile, photoFile, pdfBlob);
+
       // --- AUTO DOWNLOAD PDF ---
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -156,22 +163,19 @@ export default function Consentimiento() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      // Liberar la URL después de 1 segundo para dar tiempo al navegador a iniciar la descarga
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
       // -------------------------
 
-      // 2. Convertir imágenes para Storage
-      const signatureFile = consentService.base64ToFile(signature, 'signature.png', 'image/png');
-      const photoFile = consentService.base64ToFile(photo, 'selfie.jpg', 'image/jpeg');
-
-      // 3. Guardar todo en Supabase
-      const pdfUrl = await consentService.saveConsent(formData, signatureFile, photoFile, pdfBlob);
-
-      // 4. Registro de Auditoría
-      await auditService.record({
+      // 4. Registro de Auditoría (fire-and-forget)
+      auditService.record({
         action: 'CREATE',
         module: 'Consentimientos',
         description: `Registró consentimiento firmado con éxito para: ${formData.nombre} ${formData.apellidos} (DNI: ${formData.dni})`,
         details: { dni: formData.dni, pdf_url: pdfUrl }
-      });
+      }).catch(err => console.warn('Audit consent error:', err));
 
       setSuccess(true);
       

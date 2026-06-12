@@ -36,6 +36,7 @@ function BusquedaSeguimiento() {
   const [mostrarEvolucion, setMostrarEvolucion] = useState(false)
   const [evolucionCounts, setEvolucionCounts] = useState({})
   const [currentUserName, setCurrentUserName] = useState('')
+  const [currentUserEmail, setCurrentUserEmail] = useState('')
 
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoApellido, setNuevoApellido] = useState('')
@@ -58,6 +59,7 @@ function BusquedaSeguimiento() {
     const cargarUsuario = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
+      setCurrentUserEmail(session.user.email)
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, nombres, apellidos')
@@ -116,16 +118,17 @@ function BusquedaSeguimiento() {
       return
     }
 
-    // AUDITORÍA
-    await auditService.record({
+    // AUDITORÍA: fire-and-forget
+    auditService.record({
       action: 'UPDATE',
       module: 'Trabajadores',
       description: `Dio de baja al trabajador ${t.nombres} ${t.apellidos} (DNI: ${t.dni})`,
-      details: { dni: t.dni, nombres: t.nombres, apellidos: t.apellidos }
-    })
+      details: { dni: t.dni, nombres: t.nombres, apellidos: t.apellidos },
+      overrideUser: currentUserEmail || undefined
+    }).catch(err => console.warn('Audit baja error:', err))
 
     alert('Trabajador dado de baja correctamente')
-    buscar() // Refrescar datos
+    buscar()
   }
 
   const reactivarTrabajador = async (t) => {
@@ -143,16 +146,17 @@ function BusquedaSeguimiento() {
       return
     }
 
-    // AUDITORÍA
-    await auditService.record({
+    // AUDITORÍA: fire-and-forget
+    auditService.record({
       action: 'UPDATE',
       module: 'Trabajadores',
       description: `Dio de alta/reactivó al trabajador ${t.nombres} ${t.apellidos} (DNI: ${t.dni})`,
-      details: { dni: t.dni, nombres: t.nombres, apellidos: t.apellidos }
-    })
+      details: { dni: t.dni, nombres: t.nombres, apellidos: t.apellidos },
+      overrideUser: currentUserEmail || undefined
+    }).catch(err => console.warn('Audit reactivar error:', err))
 
     alert('Trabajador dado de alta correctamente')
-    buscar() // Refrescar datos
+    buscar()
   }
 
   /* =======================
@@ -164,45 +168,86 @@ function BusquedaSeguimiento() {
       return
     }
 
+    if (!empresaId) {
+      setMensaje('Error: No hay empresa activa. Recargue la página.')
+      return
+    }
+
     setCargando(true)
     setMensaje('Buscando trabajador...')
     setTrabajador(null)
-    setConsentimiento(null) // Reset
+    setConsentimiento(null)
     setHistorial([])
     setNoExiste(false)
 
-    const { data } = await supabase
-      .from('trabajadores')
-      .select('*')
-      .eq('dni', dni)
-      .eq('empresa_id', empresaId)   // ← filtrar por empresa activa
-      .maybeSingle()
+    let timeoutId = null
 
-    if (!data) {
-      setMensaje('Trabajador no registrado')
-      setNoExiste(true)
-      
-    } else {
-      setMensaje('')
-      setTrabajador(data)
-      cargarHistorial(data.id)
+    try {
+      // Promise.race: si la query de Supabase demora más de 10s, la cancelamos en el cliente
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+      })
 
-      // Cargar consentimiento
-      const cons = await consentService.getConsentByDni(dni)
-      setConsentimiento(cons)
-      
-      // AUDITORÍA
-      await auditService.record({
-        action: 'VIEW',
-        module: 'Trabajadores',
-        description: `Visualizó los datos y el historial médico del trabajador ${data.nombres} ${data.apellidos} con DNI ${dni}`,
-        details: { dni, worker_id: data.id }
-      });
+      const queryPromise = (async () => {
+        return await supabase
+          .from('trabajadores')
+          .select('*')
+          .eq('dni', dni)
+          .eq('empresa_id', empresaId)
+          .maybeSingle()
+      })()
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+      // Limpiar timeout de inmediato tras resolver
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+
+      if (error) {
+        console.error('Error buscando trabajador:', error)
+        setMensaje(`Error: ${error.message}`)
+        return
+      }
+
+      if (!data) {
+        setMensaje('Trabajador no registrado')
+        setNoExiste(true)
+      } else {
+        setMensaje('')
+        setTrabajador(data)
+        cargarHistorial(data.id)
+
+        // Consentimiento (paralelo con historial, es rápido)
+        consentService.getConsentByDni(dni)
+          .then(cons => setConsentimiento(cons))
+          .catch(err => console.warn('Error cargando consentimiento:', err))
+
+        // Auditoría: fire-and-forget SIN getSession() (evita lock de GoTrue)
+        auditService.record({
+          action: 'VIEW',
+          module: 'Trabajadores',
+          description: `Visualizó el historial del trabajador ${data.nombres} ${data.apellidos} con DNI ${dni}`,
+          details: { dni, worker_id: data.id },
+          overrideUser: currentUserEmail || undefined
+        }).catch(err => console.warn('Audit VIEW error:', err))
+      }
+    } catch (e) {
+      console.error('buscar() error/timeout:', e.message)
+      if (e.message === 'TIMEOUT') {
+        setMensaje('⏱ La búsqueda tardó demasiado. Problema de conexión o permisos de base de datos.')
+      } else {
+        setMensaje(`Error inesperado: ${e.message}`)
+      }
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      setCargando(false)
     }
-
-    setCargando(false)
-    
   }
+
 
   /* =======================
      HISTORIAL
@@ -274,21 +319,18 @@ function BusquedaSeguimiento() {
   })
 
   if (!error) {
-    // AUDITORÍA: Registro de creación exitosa de Atención Médica
-    try {
-      await auditService.record({
-        action: 'CREATE',
-        module: 'Atenciones Médicas',
-        description: `Registró atención médica para el trabajador ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni}) con diagnóstico CIE: ${diagnostico.codigo} - ${diagnostico.descripcion}`,
-        details: { 
-          trabajador_id: trabajador.id,
-          dni: trabajador.dni,
-          cie: `${diagnostico.codigo} - ${diagnostico.descripcion}`
-        }
-      });
-    } catch (auditErr) {
-      console.error("Error al registrar auditoría de atención médica:", auditErr)
-    }
+    // AUDITORÍA: fire-and-forget SIN getSession()
+    auditService.record({
+      action: 'CREATE',
+      module: 'Atenciones Médicas',
+      description: `Registró atención médica para el trabajador ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni}) con diagnóstico CIE: ${diagnostico.codigo} - ${diagnostico.descripcion}`,
+      details: { 
+        trabajador_id: trabajador.id,
+        dni: trabajador.dni,
+        cie: `${diagnostico.codigo} - ${diagnostico.descripcion}`
+      },
+      overrideUser: currentUserEmail || undefined
+    }).catch(err => console.warn('Audit atención error:', err))
   }
 
   setSintomas('')
@@ -441,15 +483,17 @@ function BusquedaSeguimiento() {
                 {consentimiento && (
                   <button
                     className="btn-accion btn-accion--teal"
-                    onClick={async () => {
+                    onClick={() => {
                       const win = window.open(consentimiento.pdf_url, '_blank');
                       if (win) win.focus();
-                      await auditService.record({
+                      // Fire-and-forget SIN getSession() (evita lock de GoTrue)
+                      auditService.record({
                         action: 'DOWNLOAD',
                         module: 'Consentimientos',
                         description: `Descargó el consentimiento firmado de: ${trabajador.nombres} ${trabajador.apellidos} (DNI: ${trabajador.dni})`,
-                        details: { dni: trabajador.dni, pdf_url: consentimiento.pdf_url }
-                      });
+                        details: { dni: trabajador.dni, pdf_url: consentimiento.pdf_url },
+                        overrideUser: currentUserEmail || undefined
+                      }).catch(err => console.warn('Audit DOWNLOAD error:', err));
                     }}
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

@@ -66,34 +66,63 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
 
     setBuscando(true)
 
-    const { data } = await supabase
-      .from("trabajadores")
-      .select("id, nombres, apellidos, dni, empresa")
-      .eq("dni", dni)
-      .maybeSingle()
+    // Timeout de 10s para detectar si Supabase se cuelga (ej: RLS recursivo)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-    if (!data) {
-      setTrabajador(null)
-      setMostrarRegistroTrabajador(true)
-      setTieneConsentimiento(true)
-    } else {
-      setTrabajador(data)
-      setMostrarRegistroTrabajador(false)
+    try {
+      const { data, error } = await supabase
+        .from("trabajadores")
+        .select("id, nombres, apellidos, dni, empresa")
+        .eq("dni", dni)
+        .maybeSingle()
+        .abortSignal(controller.signal)
 
-      // Verificar si está de baja
-      if (data.empresa?.endsWith(' (DE BAJA)')) {
+      clearTimeout(timeoutId)
+
+      if (error) {
+        console.error("Error buscando trabajador:", error)
+        alert(`Error al buscar trabajador: ${error.message}`)
         setBuscando(false)
-        return // Detenemos aquí, el banner lo muestra el render
+        return
       }
 
-      // Consultar si tiene consentimiento firmado
-      const { data: consentData } = await supabase
-        .from("consentimientos")
-        .select("id")
-        .eq("dni", data.dni)
-        .maybeSingle()
-      
-      setTieneConsentimiento(!!consentData)
+      if (!data) {
+        setTrabajador(null)
+        setMostrarRegistroTrabajador(true)
+        setTieneConsentimiento(true)
+      } else {
+        setTrabajador(data)
+        setMostrarRegistroTrabajador(false)
+
+        // Verificar si está de baja
+        if (data.empresa?.endsWith(' (DE BAJA)')) {
+          setBuscando(false)
+          return // Detenemos aquí, el banner lo muestra el render
+        }
+
+        // Consultar si tiene consentimiento firmado
+        const controller2 = new AbortController()
+        const timeoutId2 = setTimeout(() => controller2.abort(), 10000)
+        try {
+          const { data: consentData } = await supabase
+            .from("consentimientos")
+            .select("id")
+            .eq("dni", data.dni)
+            .maybeSingle()
+            .abortSignal(controller2.signal)
+          clearTimeout(timeoutId2)
+          setTieneConsentimiento(!!consentData)
+        } catch (e) {
+          clearTimeout(timeoutId2)
+          console.error("Timeout o error al verificar consentimiento:", e)
+          setTieneConsentimiento(false)
+        }
+      }
+    } catch (e) {
+      clearTimeout(timeoutId)
+      console.error("Timeout o error buscando trabajador:", e)
+      alert("La búsqueda tardó demasiado. Posible problema de permisos en la base de datos. Revise la consola.")
     }
 
     setBuscando(false)

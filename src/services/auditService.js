@@ -16,32 +16,37 @@ export const auditService = {
       let userName  = null;
 
       if (!userEmail) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // getSession() lee de localStorage (sin red) → no causa 401
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
           console.warn('Audit: Intent to record without an authenticated user.');
           return;
         }
-        userEmail = user.email;
+        userEmail = session.user.email;
 
         // Buscar nombre completo en profiles
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, nombres, apellidos')
-          .eq('id', user.id)
+          .eq('id', session.user.id)
           .single();
         if (profile) {
           userName = profile.full_name || `${profile.nombres} ${profile.apellidos}`.trim();
         }
       }
 
-      // 2. Obtener IP pública
+
+      // 2. Obtener IP pública (con timeout de 3s para no bloquear)
       let ip = 'Unknown';
       try {
-        const response = await fetch('https://api.ipify.org?format=json');
+        const ipController = new AbortController();
+        const ipTimeout = setTimeout(() => ipController.abort(), 3000);
+        const response = await fetch('https://api.ipify.org?format=json', { signal: ipController.signal });
+        clearTimeout(ipTimeout);
         const data = await response.json();
         ip = data.ip;
       } catch (err) {
-        console.error('Audit: Error fetching IP address', err);
+        console.warn('Audit: IP fetch timeout o error, usando Unknown', err?.name);
       }
 
       // 3. Obtener empresa_id activa desde sessionStorage (multi-tenant)
@@ -112,11 +117,14 @@ export const auditService = {
    */
   async getIP() {
     try {
-      const response = await fetch('https://api.ipify.org?format=json');
+      const ipController = new AbortController();
+      const ipTimeout = setTimeout(() => ipController.abort(), 3000);
+      const response = await fetch('https://api.ipify.org?format=json', { signal: ipController.signal });
+      clearTimeout(ipTimeout);
       const data = await response.json();
       return data.ip || 'Unknown';
     } catch (err) {
-      console.error('Audit: Error fetching IP address', err);
+      console.warn('Audit: IP fetch timeout o error', err?.name);
       return '127.0.0.1'; // Localhost fallback
     }
   },
