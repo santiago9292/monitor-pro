@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { restQuery } from '../lib/supabaseRest';
 import { consentService } from '../services/consentService';
 import { userService } from '../services/userService';
 import ModalRegistroTrabajador from '../components/ModalRegistroTrabajador';
@@ -63,11 +64,8 @@ export default function SendConsent() {
     setTelefono('');
     setExistingConsent(null);
 
-    const { data } = await supabase
-      .from('trabajadores')
-      .select('*')
-      .eq('dni', dni)
-      .maybeSingle();
+    const arr = await restQuery(`trabajadores?select=*&dni=eq.${dni}`);
+    const data = arr[0] || null;
 
     if (!data) {
       setMensaje('Trabajador no registrado');

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
+import { restQuery } from "../lib/supabaseRest"
 import { QRCodeSVG } from "qrcode.react"
 import { auditService } from "../services/auditService"
 
@@ -20,7 +21,8 @@ export default function Seguridad() {
   async function loadUserRole() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      const arr = await restQuery(`profiles?select=role&id=eq.${user.id}`)
+      const data = arr[0] || null
       if (data) setUserRole(data.role)
     }
   }

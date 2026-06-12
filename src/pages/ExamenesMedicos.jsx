@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabase"
+import { restQuery } from "../lib/supabaseRest"
 import ModalRegistroEMO from "../components/ModalRegistroEMO"
 import {
   calcularEstadoEMO,
@@ -161,34 +162,14 @@ const exportarExcel = async () => {
 
   const fetchEmos = async () => {
     console.log("fetchEmos llamado con empresaId:", empresaId)
-    const { data, error } = await supabase
-      .from("emos")
-      .select(`
-        id,
-        tipo,
-        resultado,
-        fecha_examen,
-        fecha_vencimiento,
-        entidad_medica,
-        observaciones,
-        archivo_url,
-        legajo_url,
-        informe_medico_url,
-        trabajadores (
-          dni,
-          nombres,
-          apellidos,
-          empresa
-        )
-      `)
-      .eq('empresa_id', empresaId)   // ← filtro empresa
-      .order("fecha_vencimiento", { ascending: true })
-
-    if (error) {
-      console.error("Error al obtener EMOs:", error)
-    } else {
+    try {
+      const data = await restQuery(
+        `emos?select=id,tipo,resultado,fecha_examen,fecha_vencimiento,entidad_medica,observaciones,archivo_url,legajo_url,informe_medico_url,trabajadores(dni,nombres,apellidos,empresa)&empresa_id=eq.${empresaId}&order=fecha_vencimiento.asc`
+      )
       console.log("EMOs obtenidos exitosamente:", data)
       setEmos(data || [])
+    } catch (error) {
+      console.error("Error al obtener EMOs:", error)
     }
   }
 

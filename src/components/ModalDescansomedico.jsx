@@ -111,13 +111,12 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
       return
     }
 
-    const { data } = await supabase
-      .from("cie")
-      .select("codigo, descripcion")
-      .ilike("descripcion", `%${texto}%`)
-      .limit(5)
-
-    setCieResultados(data || [])
+    try {
+      const data = await restQuery(`cie?select=codigo,descripcion&descripcion=ilike.*${encodeURIComponent(texto)}*&limit=5`)
+      setCieResultados(data || [])
+    } catch (error) {
+      console.error("Error searching CIE:", error)
+    }
   }
 
   /* 💾 Guardar descanso */
@@ -345,16 +344,17 @@ export default function ModalDescansoMedico({ abierto, onClose, onGuardado }) {
   dniInicial={dni}              // ✅ ESTE ES EL DNI INGRESADO
   onClose={() => setMostrarRegistroTrabajador(false)}
   onRegistrado={async () => {
-    // volver a buscar el trabajador recién creado
-    const { data } = await supabase
-      .from("trabajadores")
-      .select("id, nombres, apellidos, dni")
-      .eq("dni", dni)
-      .single()
+    try {
+      // volver a buscar el trabajador recién creado
+      const arr = await restQuery(`trabajadores?select=id,nombres,apellidos,dni&dni=eq.${dni}`)
+      const data = arr[0] || null
 
-    if (data) {
-      setTrabajador(data)        // ✅ ya queda seleccionado
-      setMostrarRegistroTrabajador(false)
+      if (data) {
+        setTrabajador(data)        // ✅ ya queda seleccionado
+        setMostrarRegistroTrabajador(false)
+      }
+    } catch (e) {
+      console.error("Error fetching newly registered worker:", e)
     }
   }}
 />

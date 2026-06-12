@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { restQuery } from '../lib/supabaseRest';
 
 export const auditService = {
   /**
@@ -36,11 +37,8 @@ export const auditService = {
         userEmail = sessionUser.email;
 
         // Buscar nombre completo en profiles
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, nombres, apellidos')
-          .eq('id', sessionUser.id)
-          .single();
+        const profileArr = await restQuery(`profiles?select=full_name,nombres,apellidos&id=eq.${sessionUser.id}`);
+        const profile = profileArr[0] || null;
         if (profile) {
           userName = profile.full_name || `${profile.nombres} ${profile.apellidos}`.trim();
         }
@@ -93,29 +91,20 @@ export const auditService = {
    */
   async getLogs(filters = {}) {
     try {
-      let query = supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const params = ['select=*', 'order=created_at.desc'];
       if (filters.user && filters.user !== 'Todos') {
-        query = query.eq('user_email', filters.user);
+        params.push(`user_email=eq.${encodeURIComponent(filters.user)}`);
       }
-
       if (filters.dni) {
-        query = query.ilike('description', `%${filters.dni}%`);
+        params.push(`description=ilike.*${encodeURIComponent(filters.dni)}*`);
       }
-
       if (filters.since) {
-        query = query.gte('created_at', `${filters.since}T00:00:00`);
+        params.push(`created_at=gte.${encodeURIComponent(filters.since)}T00:00:00`);
       }
-
       if (filters.until) {
-        query = query.lte('created_at', `${filters.until}T23:59:59`);
+        params.push(`created_at=lte.${encodeURIComponent(filters.until)}T23:59:59`);
       }
-
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await restQuery(`audit_logs?${params.join('&')}`);
       return data || [];
     } catch (error) {
       console.error('Error fetching audit logs:', error.message);
@@ -145,12 +134,7 @@ export const auditService = {
    */
   async getUniqueUsers() {
     try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('user_email')
-        .order('user_email');
-      
-      if (error) throw error;
+      const data = await restQuery('audit_logs?select=user_email&order=user_email.asc');
       
       // Eliminar duplicados
       const users = [...new Set(data.map(item => item.user_email))];

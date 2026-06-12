@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { restQuery } from '../lib/supabaseRest'
 import { auditService } from '../services/auditService'
 
 export default function ModalEvolucion({ abierto, registro, trabajador, onClose }) {
@@ -45,11 +46,8 @@ export default function ModalEvolucion({ abierto, registro, trabajador, onClose 
   const cargarUsuarioActual = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) return
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, nombres, apellidos')
-      .eq('id', session.user.id)
-      .single()
+    const profileArr = await restQuery(`profiles?select=full_name,nombres,apellidos&id=eq.${session.user.id}`)
+    const profile = profileArr[0] || null
     if (profile) {
       setCurrentUserName(profile.full_name || `${profile.nombres} ${profile.apellidos}`)
     } else {
@@ -59,11 +57,7 @@ export default function ModalEvolucion({ abierto, registro, trabajador, onClose 
 
   const cargarEvoluciones = async () => {
     setCargando(true)
-    const { data } = await supabase
-      .from('evoluciones')
-      .select('*')
-      .eq('registro_medico_id', registro.id)
-      .order('fecha', { ascending: true })
+    const data = await restQuery(`evoluciones?select=*&registro_medico_id=eq.${registro.id}&order=fecha.asc`)
     setEvoluciones(data || [])
     setCargando(false)
   }

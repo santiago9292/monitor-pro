@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { restQuery } from '../lib/supabaseRest'
 import { auditService } from '../services/auditService'
 
 const EMPTY_FORM = {
@@ -24,12 +25,12 @@ export default function GestionEmpresas() {
 
   async function loadEmpresas() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('empresas')
-      .select('*, profiles(count)')
-      .order('nombre')
-
-    if (!error) setEmpresas(data || [])
+    try {
+      const data = await restQuery('empresas?select=*,profiles(count)&order=nombre.asc')
+      setEmpresas(data || [])
+    } catch (error) {
+      console.error("Error loading empresas:", error)
+    }
     setLoading(false)
   }
 

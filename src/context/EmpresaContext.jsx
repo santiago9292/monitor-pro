@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { restQuery } from '../lib/supabaseRest'
 
 const EmpresaContext = createContext(null)
 
@@ -42,21 +43,13 @@ export function EmpresaProvider({ children }) {
     setLoadingEmpresas(true)
     try {
       if (role === 'super_admin') {
-        const { data } = await supabase
-          .from('empresas')
-          .select('*')
-          .eq('activa', true)
-          .order('nombre')
+        const data = await restQuery('empresas?select=*&activa=eq.true&order=nombre.asc')
         setEmpresasDisponibles(data || [])
         return data || []
       }
 
       if (role === 'medico') {
-        const { data: asignaciones } = await supabase
-          .from('medico_empresas')
-          .select('empresa_id, empresas(*)')
-          .eq('medico_id', userId)
-          .eq('activo', true)
+        const asignaciones = await restQuery(`medico_empresas?select=empresa_id,empresas(*)&medico_id=eq.${userId}&activo=eq.true`)
 
         const empresas = (asignaciones || [])
           .map(a => a.empresas)
@@ -69,22 +62,16 @@ export function EmpresaProvider({ children }) {
 
       // Para admin, enfermeria, rrhh, tecnico — su única empresa
       // Usamos 2 queries separadas para evitar el bug 406 del subrequest PostgREST
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('empresa_id')
-        .eq('id', userId)
-        .single()
+      const profileArr = await restQuery(`profiles?select=empresa_id&id=eq.${userId}`)
+      const profile = profileArr[0] || null
 
       if (!profile?.empresa_id) {
         setEmpresasDisponibles([])
         return []
       }
 
-      const { data: empresa } = await supabase
-        .from('empresas')
-        .select('*')
-        .eq('id', profile.empresa_id)
-        .single()
+      const empresaArr = await restQuery(`empresas?select=*&id=eq.${profile.empresa_id}`)
+      const empresa = empresaArr[0] || null
 
       if (empresa) {
         setEmpresasDisponibles([empresa])
@@ -107,11 +94,8 @@ export function EmpresaProvider({ children }) {
     async function initSession() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
+        const profileArr = await restQuery(`profiles?select=role&id=eq.${session.user.id}`)
+        const profile = profileArr[0] || null
         
         if (profile) {
           await loadEmpresasForUser(session.user.id, profile.role)
@@ -127,11 +111,8 @@ export function EmpresaProvider({ children }) {
         clearEmpresa()
       } else if (event === 'SIGNED_IN' && session?.user) {
         // Solo re-cargar en SIGNED_IN real (primer login), no en refresco de token
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
+        const profileArr = await restQuery(`profiles?select=role&id=eq.${session.user.id}`)
+        const profile = profileArr[0] || null
         
         if (profile) {
           await loadEmpresasForUser(session.user.id, profile.role)

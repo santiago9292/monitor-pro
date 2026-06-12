@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../lib/supabase"
+import { restQuery } from "../lib/supabaseRest"
 import logo from "../assets/logo.png"
 import { auditService } from "../services/auditService"
 import { useEmpresa } from "../context/EmpresaContext"
@@ -32,13 +33,10 @@ export default function Login() {
 
       let empresaData = null
       if (codigoBuscado) {
-        const { data: emp, error: empError } = await supabase
-          .from("empresas")
-          .select("id, codigo, nombre, logo_url, activa")
-          .eq("codigo", codigoBuscado)
-          .single()
+        const empArr = await restQuery(`empresas?select=id,codigo,nombre,logo_url,activa&codigo=eq.${codigoBuscado}`)
+        const emp = empArr[0] || null
 
-        if (empError || !emp) {
+        if (!emp) {
           setError("Código de empresa no válido o empresa no encontrada.")
           setLoading(false)
           return
@@ -62,13 +60,10 @@ export default function Login() {
       const userId = data.user.id
 
       // 1c. Obtener perfil y rol
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role, status, empresa_id")
-        .eq("id", userId)
-        .single()
+      const profileArr = await restQuery(`profiles?select=role,status,empresa_id&id=eq.${userId}`)
+      const profile = profileArr[0] || null
 
-      if (profileError || !profile) {
+      if (!profile) {
         setError("No se encontró un perfil para este usuario.")
         await supabase.auth.signOut()
         setLoading(false)
@@ -155,13 +150,8 @@ export default function Login() {
           return
         }
 
-        const { data: asignacion } = await supabase
-          .from("medico_empresas")
-          .select("id")
-          .eq("medico_id", userId)
-          .eq("empresa_id", empresaData.id)
-          .eq("activo", true)
-          .maybeSingle()
+        const asignacionArr = await restQuery(`medico_empresas?select=id&medico_id=eq.${userId}&empresa_id=eq.${empresaData.id}&activo=eq.true`)
+        const asignacion = asignacionArr[0] || null
 
         if (!asignacion) {
           setError("No tiene acceso asignado a la empresa " + empresaData.nombre + ".")
@@ -186,11 +176,8 @@ export default function Login() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("empresa_id")
-        .eq("id", userId)
-        .single()
+      const profileArr = await restQuery(`profiles?select=empresa_id&id=eq.${userId}`)
+      const profile = profileArr[0] || null
 
       if (profile?.empresa_id !== empresaData.id) {
         setError("El código de empresa no corresponde a su cuenta.")

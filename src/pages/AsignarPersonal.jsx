@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { restQuery } from '../lib/supabaseRest'
 import { auditService } from '../services/auditService'
 
 const ROLES_DISPONIBLES = ['admin', 'medico', 'enfermeria', 'rrhh', 'tecnico', 'super_admin']
@@ -147,14 +148,18 @@ export default function AsignarPersonal() {
 
   async function loadAll() {
     setLoading(true)
-    const [profilesRes, empresasRes, me_res] = await Promise.all([
-      supabase.from('profiles').select('*').order('full_name'),
-      supabase.from('empresas').select('id, codigo, nombre').eq('activa', true).order('nombre'),
-      supabase.from('medico_empresas').select('medico_id, empresa_id, activo'),
-    ])
-    setProfiles(profilesRes.data || [])
-    setEmpresas(empresasRes.data || [])
-    setMedicoEmpresas(me_res.data || [])
+    try {
+      const [profilesRes, empresasRes, me_res] = await Promise.all([
+        restQuery('profiles?select=*&order=full_name.asc'),
+        restQuery('empresas?select=id,codigo,nombre&activa=eq.true&order=nombre.asc'),
+        restQuery('medico_empresas?select=medico_id,empresa_id,activo'),
+      ])
+      setProfiles(profilesRes || [])
+      setEmpresas(empresasRes || [])
+      setMedicoEmpresas(me_res || [])
+    } catch (error) {
+      console.error('Error loading assignments data:', error)
+    }
     setLoading(false)
   }
 
@@ -208,12 +213,8 @@ export default function AsignarPersonal() {
 
         // 2. Insertar o reactivar las seleccionadas
         for (const empresaId of editEmpresasSeleccionadas) {
-          const { data: existing } = await supabase
-            .from('medico_empresas')
-            .select('id')
-            .eq('medico_id', editUser.id)
-            .eq('empresa_id', empresaId)
-            .maybeSingle()
+          const existingArr = await restQuery(`medico_empresas?select=id&medico_id=eq.${editUser.id}&empresa_id=eq.${empresaId}`)
+          const existing = existingArr[0] || null
 
           if (existing) {
             const { error: reactivateErr } = await supabase

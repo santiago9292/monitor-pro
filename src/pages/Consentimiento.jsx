@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { restQuery } from '../lib/supabaseRest';
 import { auditService } from '../services/auditService';
 import { consentService } from '../services/consentService';
 import { userService } from '../services/userService';
@@ -88,11 +89,8 @@ export default function Consentimiento() {
       if (formData.dni.length === 8) {
         setSearching(true);
         try {
-          const { data, error } = await supabase
-            .from('trabajadores')
-            .select('*')
-            .eq('dni', formData.dni)
-            .maybeSingle();
+          const arr = await restQuery(`trabajadores?select=*&dni=eq.${formData.dni}`);
+          const data = arr[0] || null;
           
           if (data) {
             setFormData(prev => ({

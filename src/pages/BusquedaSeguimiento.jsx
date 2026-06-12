@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { restQuery } from '../lib/supabaseRest'
 import { auditService } from '../services/auditService'
 import { consentService } from '../services/consentService'
 import logo from '../assets/logo.png'
@@ -60,11 +61,8 @@ function BusquedaSeguimiento() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
       setCurrentUserEmail(session.user.email)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, nombres, apellidos')
-        .eq('id', session.user.id)
-        .single()
+      const profileArr = await restQuery(`profiles?select=full_name,nombres,apellidos&id=eq.${session.user.id}`)
+      const profile = profileArr[0] || null
       if (profile) {
         setCurrentUserName(profile.full_name || `${profile.nombres} ${profile.apellidos}`)
       } else {
@@ -186,32 +184,9 @@ function BusquedaSeguimiento() {
     console.log('🟡 antes de la query a trabajadores')
 
     try {
-      console.log('🟢 ejecutando query (fetch crudo)...')
-      // Workaround: supabase.auth.getSession() se cuelga indefinidamente en la
-      // segunda llamada tras un cambio de visibilidad de pestaña (bug de gotrue-js,
-      // promesa de inicialización cacheada que queda in-flight). Leemos el token
-      // directamente de localStorage, que es donde GoTrue lo persiste.
-      const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]
-      const storageKey = `sb-${projectRef}-auth-token`
-      let access_token = null
-      try {
-        const raw = localStorage.getItem(storageKey)
-        const parsed = raw ? JSON.parse(raw) : null
-        access_token = parsed?.access_token || null
-      } catch (e) {
-        console.warn('No se pudo leer la sesión de localStorage:', e)
-      }
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/trabajadores?dni=eq.${dni}&empresa_id=eq.${empresaId}&select=*`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${access_token}`,
-          }
-        }
-      )
-      const dataArr = await res.json()
-      console.log('🟣 fetch crudo resuelto:', dataArr)
+      console.log('🟢 ejecutando query...')
+      const dataArr = await restQuery(`trabajadores?select=*&dni=eq.${dni}&empresa_id=eq.${empresaId}`)
+      console.log('🟣 query resuelto:', dataArr)
       const data = dataArr[0] || null
       const error = null
 
@@ -256,11 +231,7 @@ function BusquedaSeguimiento() {
      HISTORIAL
   ======================= */
   const cargarHistorial = async (id) => {
-    const { data } = await supabase
-      .from('registros_medicos')
-      .select('id, fecha, sintomas, recomendaciones, cie, created_by_name')
-      .eq('trabajador_id', id)
-      .order('fecha', { ascending: false })
+    const data = await restQuery(`registros_medicos?select=id,fecha,sintomas,recomendaciones,cie,created_by_name&trabajador_id=eq.${id}&order=fecha.desc`)
 
     const registros = data || []
     setHistorial(registros)
@@ -268,10 +239,7 @@ function BusquedaSeguimiento() {
     // Cargar conteo de evoluciones para cada registro
     if (registros.length > 0) {
       const ids = registros.map(r => r.id)
-      const { data: evols } = await supabase
-        .from('evoluciones')
-        .select('registro_medico_id')
-        .in('registro_medico_id', ids)
+      const evols = await restQuery(`evoluciones?select=registro_medico_id&registro_medico_id=in.(${ids.join(',')})`)
 
       const counts = {}
       ;(evols || []).forEach(e => {
@@ -292,11 +260,7 @@ function BusquedaSeguimiento() {
 
     const q = texto.trim()
 
-    const { data } = await supabase
-      .from('cie')
-      .select('codigo, descripcion')
-      .or(`codigo.ilike.%${q}%,descripcion.ilike.%${q}%`)
-      .limit(10)
+    const data = await restQuery(`cie?select=codigo,descripcion&or=(codigo.ilike.*${encodeURIComponent(q)}*,descripcion.ilike.*${encodeURIComponent(q)}*)&limit=10`)
 
     setCieResultados(data || [])
   }

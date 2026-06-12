@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { restQuery } from '../lib/supabaseRest';
 
 export const userService = {
   /**
@@ -6,12 +7,7 @@ export const userService = {
    */
   async getProfiles() {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('full_name');
-      
-      if (error) throw error;
+      const data = await restQuery('profiles?select=*&order=full_name.asc');
       return data || [];
     } catch (error) {
       console.error('Error fetching profiles:', error.message);
@@ -24,13 +20,8 @@ export const userService = {
    */
   async getProfile(userId) {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
+      const arr = await restQuery(`profiles?select=*&id=eq.${userId}`);
+      const data = arr[0] || null;
       return data;
     } catch (error) {
       console.error('Error fetching profile:', error.message);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { restQuery } from '../lib/supabaseRest'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, LabelList, PieChart, Pie, Cell, Legend
@@ -52,89 +53,92 @@ function Estadisticas() {
   }
 
   const cargarEstadisticasAtenciones = async () => {
-    let query = supabase
-      .from('registros_medicos')
-      .select('fecha, cie, trabajador_id, trabajadores(nombres, apellidos, dni, sexo)')
-      .eq('empresa_id', empresaId)   // ← filtro empresa
+    try {
+      const params = [
+        'select=fecha,cie,trabajador_id,trabajadores(nombres,apellidos,dni,sexo)',
+        `empresa_id=eq.${empresaId}`
+      ]
+      if (desde) params.push(`fecha=gte.${desde}`)
+      if (hasta) params.push(`fecha=lte.${hasta}T23:59:59`)
 
-    if (desde) query = query.gte('fecha', desde)
-    if (hasta) query = query.lte('fecha', hasta + 'T23:59:59')
+      const data = await restQuery(`registros_medicos?${params.join('&')}`)
+      if (!data) return
 
-    const { data } = await query
-    if (!data) return
+      // 1. KPI Total
+      const total = data.length
 
-    // 1. KPI Total
-    const total = data.length
+      // 2. Por CIE
+      const cieMap = {}
+      data.forEach(r => { if (r.cie) cieMap[r.cie] = (cieMap[r.cie] || 0) + 1 })
+      setPorCie(Object.entries(cieMap).map(([cie, total]) => ({ cie, total })).sort((a,b) => b.total - a.total).slice(0, 8))
 
-    // 2. Por CIE
-    const cieMap = {}
-    data.forEach(r => { if (r.cie) cieMap[r.cie] = (cieMap[r.cie] || 0) + 1 })
-    setPorCie(Object.entries(cieMap).map(([cie, total]) => ({ cie, total })).sort((a,b) => b.total - a.total).slice(0, 8))
+      // 3. Por Día
+      const fechaMap = {}
+      data.forEach(r => { const d = r.fecha.split('T')[0]; fechaMap[d] = (fechaMap[d] || 0) + 1 })
+      setPorDia(Object.entries(fechaMap).map(([fecha, total]) => ({ fecha, total })).sort((a,b) => a.fecha.localeCompare(b.fecha)))
 
-    // 3. Por Día
-    const fechaMap = {}
-    data.forEach(r => { const d = r.fecha.split('T')[0]; fechaMap[d] = (fechaMap[d] || 0) + 1 })
-    setPorDia(Object.entries(fechaMap).map(([fecha, total]) => ({ fecha, total })).sort((a,b) => a.fecha.localeCompare(b.fecha)))
+      // 4. Distribución Género
+      const genMap = { M: 0, F: 0 }
+      data.forEach(r => { if (r.trabajadores?.sexo) genMap[r.trabajadores.sexo]++ })
+      setGeneroDist([
+        { name: 'Masculino', value: genMap.M },
+        { name: 'Femenino', value: genMap.F }
+      ])
 
-    // 4. Distribución Género
-    const genMap = { M: 0, F: 0 }
-    data.forEach(r => { if (r.trabajadores?.sexo) genMap[r.trabajadores.sexo]++ })
-    setGeneroDist([
-      { name: 'Masculino', value: genMap.M },
-      { name: 'Femenino', value: genMap.F }
-    ])
-
-    // 5. Top Pacientes
-    const pacMap = {}
-    data.forEach(r => {
-      const t = r.trabajadores
-      if (!t) return
-      pacMap[t.dni] = pacMap[t.dni] || { nombre: `${t.nombres} ${t.apellidos}`, dni: t.dni, total: 0 }
-      pacMap[t.dni].total++
-    })
-    setTopPacientes(Object.values(pacMap).sort((a,b) => b.total - a.total).slice(0, 5))
-    
-    setKpis(prev => ({ ...prev, totalAtenciones: total }))
+      // 5. Top Pacientes
+      const pacMap = {}
+      data.forEach(r => {
+        const t = r.trabajadores
+        if (!t) return
+        pacMap[t.dni] = pacMap[t.dni] || { nombre: `${t.nombres} ${t.apellidos}`, dni: t.dni, total: 0 }
+        pacMap[t.dni].total++
+      })
+      setTopPacientes(Object.values(pacMap).sort((a,b) => b.total - a.total).slice(0, 5))
+      
+      setKpis(prev => ({ ...prev, totalAtenciones: total }))
+    } catch (error) {
+      console.error("Error loading atenciones stats:", error)
+    }
   }
 
   const cargarKpisAdicionales = async () => {
     const today = new Date().toISOString().split('T')[0]
 
-    // Descansos Activos (excluyendo trabajadores de baja)
-    const { data: descansosData, error: dmError } = await supabase
-      .from('descansos_medicos')
-      .select('id, trabajadores!inner(empresa)')
-      .eq('empresa_id', empresaId)   // ← filtro empresa
-      .gte('fecha_fin', today)
-      .not('trabajadores.empresa', 'ilike', '%DE BAJA%')
+    try {
+      // Descansos Activos (excluyendo trabajadores de baja)
+      const descansosData = await restQuery(
+        `descansos_medicos?select=id,trabajadores!inner(empresa)&empresa_id=eq.${empresaId}&fecha_fin=gte.${today}&trabajadores.empresa=not.ilike.*DE%20BAJA*`
+      )
+      const descansos = descansosData ? descansosData.length : 0
 
-    const descansos = dmError || !descansosData ? 0 : descansosData.length
+      // EMOs Vencidos (excluyendo trabajadores de baja)
+      const emosData = await restQuery(
+        `emos?select=id,trabajadores!inner(empresa)&empresa_id=eq.${empresaId}&fecha_vencimiento=lt.${today}&trabajadores.empresa=not.ilike.*DE%20BAJA*`
+      )
+      const emos = emosData ? emosData.length : 0
 
-    // EMOs Vencidos (excluyendo trabajadores de baja)
-    const { data: emosData, error: emosError } = await supabase
-      .from('emos')
-      .select('id, trabajadores!inner(empresa)')
-      .eq('empresa_id', empresaId)   // ← filtro empresa
-      .lt('fecha_vencimiento', today)
-      .not('trabajadores.empresa', 'ilike', '%DE BAJA%')
-
-    const emos = emosError || !emosData ? 0 : emosData.length
-
-    setKpis(prev => ({
-      ...prev,
-      descansosActivos: descansos,
-      emosVencidos: emos
-    }))
+      setKpis(prev => ({
+        ...prev,
+        descansosActivos: descansos,
+        emosVencidos: emos
+      }))
+    } catch (error) {
+      console.error("Error loading additional KPIs:", error)
+    }
   }
 
   const exportarExcel = async () => {
-    let query = supabase
-      .from('registros_medicos')
-      .select('fecha, sintomas, recomendaciones, cie, trabajadores(dni, nombres, apellidos, sexo, fecha_nacimiento)')
-
-    if (desde) query = query.gte('fecha', desde)
-    if (hasta) query = query.lte('fecha', hasta + 'T23:59:59')
-    const { data } = await query
+    let data = []
+    try {
+      const params = [
+        'select=fecha,sintomas,recomendaciones,cie,trabajadores(dni,nombres,apellidos,sexo,fecha_nacimiento)'
+      ]
+      if (desde) params.push(`fecha=gte.${desde}`)
+      if (hasta) params.push(`fecha=lte.${hasta}T23:59:59`)
+      data = await restQuery(`registros_medicos?${params.join('&')}`)
+    } catch (error) {
+      console.error("Error exporting to excel:", error)
+    }
 
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Reporte Atenciones')

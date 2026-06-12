@@ -24,7 +24,7 @@ export async function restQuery(path, options = {}) {
     method: options.method || 'GET',
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${access_token}`,
+      ...(access_token ? { Authorization: `Bearer ${access_token}` } : {}),
       'Content-Type': 'application/json',
       ...(options.method && options.method !== 'GET' ? { Prefer: 'return=representation' } : {})
     },

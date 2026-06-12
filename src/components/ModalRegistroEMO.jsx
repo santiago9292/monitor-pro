@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
+import { restQuery } from "../lib/supabaseRest"
 import { auditService } from "../services/auditService"
 import ModalRegistroTrabajador from "./ModalRegistroTrabajador"
 import { useEmpresa } from "../context/EmpresaContext"
@@ -69,11 +70,8 @@ export default function ModalRegistroEMO({ abierto, onClose, onGuardado, emoPara
         setTieneEmoVigente(false)
 
         const checkConsent = async (workerDni) => {
-          const { data: consentData } = await supabase
-            .from("consentimientos")
-            .select("id")
-            .eq("dni", workerDni)
-            .maybeSingle()
+          const consentArr = await restQuery(`consentimientos?select=id&dni=eq.${workerDni}`)
+          const consentData = consentArr[0] || null
           setTieneConsentimiento(!!consentData)
         }
         if (emoParaEditar.trabajadores?.dni) {
@@ -100,11 +98,8 @@ export default function ModalRegistroEMO({ abierto, onClose, onGuardado, emoPara
     setBuscando(true)
     setTieneEmoVigente(false)
 
-    const { data } = await supabase
-      .from("trabajadores")
-      .select("id, nombres, apellidos, dni, empresa")
-      .eq("dni", dni)
-      .maybeSingle()
+    const workerArr = await restQuery(`trabajadores?select=id,nombres,apellidos,dni,empresa&dni=eq.${dni}`)
+    const data = workerArr[0] || null
 
     if (!data) {
       setTrabajador(null)
@@ -121,22 +116,16 @@ export default function ModalRegistroEMO({ abierto, onClose, onGuardado, emoPara
       }
 
       // Consultar si tiene consentimiento firmado
-      const { data: consentData } = await supabase
-        .from("consentimientos")
-        .select("id")
-        .eq("dni", data.dni)
-        .maybeSingle()
+      const consentArr = await restQuery(`consentimientos?select=id&dni=eq.${data.dni}`)
+      const consentData = consentArr[0] || null
       
       setTieneConsentimiento(!!consentData)
 
       // Consultar historial EMO
       const hoy = new Date()
       hoy.setHours(0, 0, 0, 0)
-
-      const { data: emosHistorial } = await supabase
-        .from("emos")
-        .select("fecha_vencimiento, resultado")
-        .eq("trabajador_id", data.id)
+ 
+      const emosHistorial = await restQuery(`emos?select=fecha_vencimiento,resultado&trabajador_id=eq.${data.id}`)
 
       if (emosHistorial && emosHistorial.length > 0) {
         const tieneVigente = emosHistorial.some(emo => {
@@ -571,12 +560,9 @@ export default function ModalRegistroEMO({ abierto, onClose, onGuardado, emoPara
         dniInicial={dni}
         onClose={() => setMostrarRegistroTrabajador(false)}
         onRegistrado={async () => {
-          const { data } = await supabase
-            .from("trabajadores")
-            .select("id, nombres, apellidos, dni")
-            .eq("dni", dni)
-            .single()
-
+          const workerArr = await restQuery(`trabajadores?select=id,nombres,apellidos,dni&dni=eq.${dni}`)
+          const data = workerArr[0] || null
+ 
           if (data) {
             setTrabajador(data)
             setMostrarRegistroTrabajador(false)
